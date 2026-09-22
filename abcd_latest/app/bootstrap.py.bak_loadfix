@@ -1,0 +1,52 @@
+import os
+import sys
+
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtQml import QQmlApplicationEngine
+from PyQt5.QtWidgets import QApplication
+
+from app.bridge import MachineBridge
+from app.can_setup import setup_can_bus
+from app.config import APP_NAME, MAIN_QML, QML_DIR, ensure_paths
+from app.controller import AppController
+
+# Runtime fixes for RK356x / no GPS serial
+os.environ["GPS_SYNC_DISABLED"] = "1"
+os.environ["QT_QPA_PLATFORM"] = "xcb"
+os.environ["QT_XCB_GL_INTEGRATION"] = "none"
+os.environ["QT_OPENGL"] = "software"
+os.environ["QT_QUICK_BACKEND"] = "software"
+os.environ["LIBGL_ALWAYS_SOFTWARE"] = "1"
+os.environ["QT_QUICK_CONTROLS_STYLE"] = "Basic"
+os.environ["QT_DEBUG_PLUGINS"] = "0"
+
+
+def _configure_qt_env():
+    os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "Basic")
+    os.environ.setdefault("QT_LOGGING_RULES", "qt.qpa.*=false")
+    os.environ.setdefault("QML_DISABLE_DISK_CACHE", "0")
+
+
+def run():
+    ensure_paths()
+    setup_can_bus()
+    _configure_qt_env()
+
+    QApplication.setAttribute(Qt.AA_SynthesizeMouseForUnhandledTouchEvents, True)
+    QApplication.setAttribute(Qt.AA_SynthesizeTouchForUnhandledMouseEvents, False)
+
+
+    app = QApplication(sys.argv)
+    app.setApplicationName(APP_NAME)
+
+    engine = QQmlApplicationEngine()
+    engine.addImportPath(QML_DIR)
+
+    engine.rootContext().setContextProperty("appController", AppController())
+    engine.rootContext().setContextProperty("machineBridge", MachineBridge())
+
+    engine.load(QUrl.fromLocalFile(MAIN_QML))
+    if not engine.rootObjects():
+        return 1
+
+    return app.exec_()

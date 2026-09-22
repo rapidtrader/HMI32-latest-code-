@@ -1,0 +1,6 @@
+PyQt5>=5.15
+pyserial>=3.5
+pynmea2>=1.19
+python-can>=4.0; platform_system=="Linux"
+python-socketio>=5.8
+websocket-client>=1.6

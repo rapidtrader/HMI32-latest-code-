@@ -1,0 +1,1839 @@
+[
+  {
+    "date": "2026-04-07",
+    "start": "18:28:17",
+    "stop": "18:28:35",
+    "duration_sec": 18.24102807044983,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:28:48",
+    "stop": "18:28:51",
+    "duration_sec": 3.1202564239501953,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:28:54",
+    "stop": "18:28:58",
+    "duration_sec": 4.32017970085144,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:31:18",
+    "stop": "18:31:19",
+    "duration_sec": 1.2813265323638916,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:31:21",
+    "stop": "18:31:23",
+    "duration_sec": 2.3038220405578613,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:31:37",
+    "stop": "18:31:43",
+    "duration_sec": 5.71241021156311,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:33:20",
+    "stop": "18:33:24",
+    "duration_sec": 4.185025215148926,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:34:52",
+    "stop": "18:34:53",
+    "duration_sec": 0.5832984447479248,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:34:58",
+    "stop": "18:35:02",
+    "duration_sec": 3.663994550704956,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:46:43",
+    "stop": "18:46:44",
+    "duration_sec": 0.5750148296356201,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:46:46",
+    "stop": "18:46:46",
+    "duration_sec": 0.477863073348999,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:47:09",
+    "stop": "18:47:11",
+    "duration_sec": 1.632943868637085,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:47:46",
+    "stop": "18:47:47",
+    "duration_sec": 1.1284821033477783,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:47:48",
+    "stop": "18:47:49",
+    "duration_sec": 0.80767822265625,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:53:01",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-07",
+    "start": "18:53:30",
+    "stop": "18:53:32",
+    "duration_sec": 1.6316323280334473,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "14:13:54",
+    "stop": "14:13:55",
+    "duration_sec": 0.9676401615142822,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "14:14:00",
+    "stop": "14:14:01",
+    "duration_sec": 0.9201023578643799,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "14:14:09",
+    "stop": "14:14:10",
+    "duration_sec": 0.8151943683624268,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "14:14:17",
+    "stop": "14:14:33",
+    "duration_sec": 15.71160888671875,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "14:14:37",
+    "stop": "14:14:38",
+    "duration_sec": 0.5346879959106445,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "14:15:03",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "14:20:55",
+    "stop": "14:20:58",
+    "duration_sec": 2.48099422454834,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:24:12",
+    "stop": "15:24:21",
+    "duration_sec": 9.60108733177185,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:24:36",
+    "stop": "15:25:02",
+    "duration_sec": 25.791775941848755,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:25:45",
+    "stop": "15:25:48",
+    "duration_sec": 2.7274298667907715,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:25:51",
+    "stop": "15:25:52",
+    "duration_sec": 1.360379934310913,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:27:08",
+    "stop": "15:27:08",
+    "duration_sec": 0.6473104953765869,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:27:09",
+    "stop": "15:27:10",
+    "duration_sec": 0.5922574996948242,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:27:10",
+    "stop": "15:27:11",
+    "duration_sec": 0.43955111503601074,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:27:19",
+    "stop": "15:27:20",
+    "duration_sec": 0.46392822265625,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:27:21",
+    "stop": "15:27:21",
+    "duration_sec": 0.526547908782959,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:29:58",
+    "stop": "15:29:58",
+    "duration_sec": 0.023685455322265625,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:29:59",
+    "stop": "15:30:00",
+    "duration_sec": 0.7354507446289062,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:33:59",
+    "stop": "15:34:00",
+    "duration_sec": 0.31174373626708984,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:35:51",
+    "stop": "15:35:53",
+    "duration_sec": 2.1278460025787354,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:38:09",
+    "stop": "15:38:10",
+    "duration_sec": 0.7361371517181396,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:38:11",
+    "stop": "15:38:12",
+    "duration_sec": 1.2557644844055176,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:39:17",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:41:30",
+    "stop": "15:41:57",
+    "duration_sec": 27.119038820266724,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:41:59",
+    "stop": "15:42:36",
+    "duration_sec": 36.903852462768555,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:42:38",
+    "stop": "15:42:40",
+    "duration_sec": 1.4556927680969238,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:43:02",
+    "stop": "15:43:02",
+    "duration_sec": 0.024678945541381836,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:43:05",
+    "stop": "15:43:07",
+    "duration_sec": 2.3911659717559814,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:43:28",
+    "stop": "15:43:31",
+    "duration_sec": 3.032156229019165,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:43:32",
+    "stop": "15:43:32",
+    "duration_sec": 0.7198328971862793,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:43:50",
+    "stop": "15:43:53",
+    "duration_sec": 2.503467321395874,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:44:49",
+    "stop": "15:44:51",
+    "duration_sec": 2.5679514408111572,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:49:30",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:49:36",
+    "stop": "15:49:40",
+    "duration_sec": 3.527890682220459,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:49:41",
+    "stop": "15:49:41",
+    "duration_sec": 0.0239102840423584,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:49:42",
+    "stop": "15:49:44",
+    "duration_sec": 1.9840476512908936,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:50:04",
+    "stop": "15:50:07",
+    "duration_sec": 2.4797756671905518,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:50:09",
+    "stop": "15:50:11",
+    "duration_sec": 2.295448064804077,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:50:14",
+    "stop": "15:50:20",
+    "duration_sec": 6.014958143234253,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "15:58:22",
+    "stop": "15:58:38",
+    "duration_sec": 16.65594458580017,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:01:11",
+    "stop": "16:01:12",
+    "duration_sec": 0.6958451271057129,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:01:44",
+    "stop": "16:01:44",
+    "duration_sec": 0.7129530906677246,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:01:45",
+    "stop": "16:01:46",
+    "duration_sec": 0.7988617420196533,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:01:47",
+    "stop": "16:01:48",
+    "duration_sec": 0.6567232608795166,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:01:48",
+    "stop": "16:01:49",
+    "duration_sec": 0.7672023773193359,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:01:50",
+    "stop": "16:01:51",
+    "duration_sec": 0.5836288928985596,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:01:54",
+    "stop": "16:01:57",
+    "duration_sec": 3.0148701667785645,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:02:00",
+    "stop": "16:02:08",
+    "duration_sec": 8.606957912445068,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "16:02:10",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": ""
+  },
+  {
+    "date": "2026-04-09",
+    "start": "17:58:39",
+    "stop": "17:58:53",
+    "duration_sec": 13.983874320983887,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-09",
+    "start": "18:26:46",
+    "stop": "18:26:55",
+    "duration_sec": 9.03258228302002,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-09",
+    "start": "18:28:15",
+    "stop": "18:28:17",
+    "duration_sec": 2.49633526802063,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-10",
+    "start": "10:10:52",
+    "stop": "10:10:54",
+    "duration_sec": 1.9200215339660645,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-10",
+    "start": "12:46:56",
+    "stop": "12:47:05",
+    "duration_sec": 9.066383600234985,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-10",
+    "start": "13:16:48",
+    "stop": "13:16:50",
+    "duration_sec": 2.590590715408325,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-10",
+    "start": "17:41:31",
+    "stop": "17:41:45",
+    "duration_sec": 14.686549663543701,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-10",
+    "start": "17:42:31",
+    "stop": "17:42:36",
+    "duration_sec": 4.805731296539307,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-10",
+    "start": "17:47:48",
+    "stop": "17:47:57",
+    "duration_sec": 9.298790216445923,
+    "machine_id": "1",
+    "synced": true
+  },
+  {
+    "date": "2026-04-15",
+    "start": "16:52:57",
+    "stop": "16:55:23",
+    "duration_sec": 145.686763048172,
+    "machine_id": "pi-00de9c0a70",
+    "synced": true
+  },
+  {
+    "date": "2026-05-27",
+    "start": "13:50:19",
+    "stop": "13:50:31",
+    "duration_sec": 12.600530624389648,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-05-27",
+    "start": "13:50:37",
+    "stop": "13:50:40",
+    "duration_sec": 2.543833017349243,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-05-27",
+    "start": "13:50:47",
+    "stop": "13:50:51",
+    "duration_sec": 4.559901237487793,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-05-27",
+    "start": "13:56:18",
+    "stop": "13:56:21",
+    "duration_sec": 2.17594838142395,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-05-27",
+    "start": "14:08:46",
+    "stop": "14:08:55",
+    "duration_sec": 8.335877656936646,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-05-27",
+    "start": "17:43:35",
+    "stop": "17:43:37",
+    "duration_sec": 2.4237122535705566,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-05-27",
+    "start": "17:43:41",
+    "stop": "17:43:43",
+    "duration_sec": 2.4237704277038574,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:33:14",
+    "stop": "13:33:14",
+    "duration_sec": 0.19860339164733887,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:33:15",
+    "stop": "13:33:15",
+    "duration_sec": 0.0026514530181884766,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:33:16",
+    "stop": "13:33:18",
+    "duration_sec": 1.8036103248596191,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:33:44",
+    "stop": "13:33:46",
+    "duration_sec": 2.039297342300415,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:33:48",
+    "stop": "13:33:49",
+    "duration_sec": 1.8090214729309082,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:33:51",
+    "stop": "13:33:53",
+    "duration_sec": 2.049297332763672,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:33:59",
+    "stop": "13:34:02",
+    "duration_sec": 2.2791359424591064,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:34:05",
+    "stop": "13:34:05",
+    "duration_sec": 0.5278608798980713,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:52:22",
+    "stop": "13:52:22",
+    "duration_sec": 0.003053426742553711,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:52:24",
+    "stop": "13:52:24",
+    "duration_sec": 0.0032851696014404297,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:52:26",
+    "stop": "13:52:26",
+    "duration_sec": 0.023161649703979492,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:52:28",
+    "stop": "13:52:28",
+    "duration_sec": 0.003455638885498047,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:52:30",
+    "stop": "13:52:30",
+    "duration_sec": 0.012356758117675781,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:52:32",
+    "stop": "13:52:32",
+    "duration_sec": 0.0023643970489501953,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:52:46",
+    "stop": "13:52:46",
+    "duration_sec": 0.47104954719543457,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:52:49",
+    "stop": "13:52:50",
+    "duration_sec": 1.5835273265838623,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:56:28",
+    "stop": "13:56:30",
+    "duration_sec": 1.496112585067749,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "13:56:32",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "17:41:28",
+    "stop": "17:41:29",
+    "duration_sec": 1.029648780822754,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "17:55:51",
+    "stop": "17:55:54",
+    "duration_sec": 2.8100757598876953,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "17:58:01",
+    "stop": "17:58:02",
+    "duration_sec": 0.04132390022277832,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-02",
+    "start": "18:15:08",
+    "stop": "18:15:08",
+    "duration_sec": 0.24247527122497559,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:30:30",
+    "stop": "14:30:30",
+    "duration_sec": 0.16033720970153809,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:30:37",
+    "stop": "14:30:38",
+    "duration_sec": 1.0652594566345215,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:30:54",
+    "stop": "14:30:55",
+    "duration_sec": 0.22295713424682617,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:31:02",
+    "stop": "14:31:05",
+    "duration_sec": 2.1754629611968994,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:38:02",
+    "stop": "14:38:02",
+    "duration_sec": 0.44171595573425293,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:38:11",
+    "stop": "14:38:11",
+    "duration_sec": 0.01199197769165039,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:38:23",
+    "stop": "14:39:29",
+    "duration_sec": 66.07144522666931,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:57:55",
+    "stop": "14:57:55",
+    "duration_sec": 0.14065814018249512,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:58:02",
+    "stop": "14:58:02",
+    "duration_sec": 0.012783527374267578,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:58:15",
+    "stop": "14:58:15",
+    "duration_sec": 0.011415719985961914,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:58:23",
+    "stop": "14:58:23",
+    "duration_sec": 0.011876106262207031,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:58:50",
+    "stop": "14:58:51",
+    "duration_sec": 1.2589137554168701,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "14:59:26",
+    "stop": "14:59:26",
+    "duration_sec": 0.3671896457672119,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "15:55:56",
+    "stop": "15:55:56",
+    "duration_sec": 0.13429808616638184,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "15:56:05",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:10:17",
+    "stop": "19:10:18",
+    "duration_sec": 0.9220736026763916,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:10:30",
+    "stop": "19:10:35",
+    "duration_sec": 5.8005993366241455,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:13:14",
+    "stop": "19:13:20",
+    "duration_sec": 6.247005939483643,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:13:32",
+    "stop": "19:13:32",
+    "duration_sec": 0.027929306030273438,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:13:44",
+    "stop": "19:13:44",
+    "duration_sec": 0.02839183807373047,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:15:49",
+    "stop": "19:15:49",
+    "duration_sec": 0.30768251419067383,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:42",
+    "stop": "19:35:42",
+    "duration_sec": 0.356325626373291,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:42",
+    "stop": "19:35:43",
+    "duration_sec": 0.20674371719360352,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:43",
+    "stop": "19:35:43",
+    "duration_sec": 0.15334200859069824,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:43",
+    "stop": "19:35:43",
+    "duration_sec": 0.1735553741455078,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:43",
+    "stop": "19:35:44",
+    "duration_sec": 0.15937590599060059,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:44",
+    "stop": "19:35:44",
+    "duration_sec": 0.14017033576965332,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:44",
+    "stop": "19:35:44",
+    "duration_sec": 0.23196196556091309,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:51",
+    "stop": "19:35:51",
+    "duration_sec": 0.14259624481201172,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:51",
+    "stop": "19:35:52",
+    "duration_sec": 0.1438448429107666,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:52",
+    "stop": "19:35:52",
+    "duration_sec": 0.1307511329650879,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:52",
+    "stop": "19:35:52",
+    "duration_sec": 0.1397264003753662,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:52",
+    "stop": "19:35:52",
+    "duration_sec": 0.14154720306396484,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:53",
+    "stop": "19:35:53",
+    "duration_sec": 0.145782470703125,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:53",
+    "stop": "19:35:53",
+    "duration_sec": 0.14506983757019043,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:53",
+    "stop": "19:35:53",
+    "duration_sec": 0.14283466339111328,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:53",
+    "stop": "19:35:55",
+    "duration_sec": 1.4503850936889648,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:35:55",
+    "stop": "19:35:55",
+    "duration_sec": 0.3255879878997803,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:36:15",
+    "stop": "19:36:15",
+    "duration_sec": 0.18854904174804688,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:36:15",
+    "stop": "19:36:16",
+    "duration_sec": 0.16388344764709473,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:36:16",
+    "stop": "19:36:16",
+    "duration_sec": 0.1495058536529541,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:36:16",
+    "stop": "19:36:16",
+    "duration_sec": 0.13169622421264648,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:08",
+    "stop": "19:37:08",
+    "duration_sec": 0.1337292194366455,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:09",
+    "stop": "19:37:09",
+    "duration_sec": 0.14723420143127441,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:09",
+    "stop": "19:37:09",
+    "duration_sec": 0.14902567863464355,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:09",
+    "stop": "19:37:09",
+    "duration_sec": 0.13802027702331543,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:09",
+    "stop": "19:37:10",
+    "duration_sec": 0.1593017578125,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:10",
+    "stop": "19:37:13",
+    "duration_sec": 2.9986515045166016,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:13",
+    "stop": "19:37:13",
+    "duration_sec": 0.20817804336547852,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:37",
+    "stop": "19:37:38",
+    "duration_sec": 0.20142006874084473,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:38",
+    "stop": "19:37:39",
+    "duration_sec": 1.2720470428466797,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:37:39",
+    "stop": "19:37:39",
+    "duration_sec": 0.2719242572784424,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:41:46",
+    "stop": "19:41:46",
+    "duration_sec": 0.014662504196166992,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:41:46",
+    "stop": "19:41:50",
+    "duration_sec": 3.9447624683380127,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:08",
+    "stop": "19:42:08",
+    "duration_sec": 0.16944360733032227,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:09",
+    "stop": "19:42:09",
+    "duration_sec": 0.17326068878173828,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:09",
+    "stop": "19:42:09",
+    "duration_sec": 0.16563963890075684,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:10",
+    "stop": "19:42:10",
+    "duration_sec": 0.015914440155029297,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:10",
+    "stop": "19:42:11",
+    "duration_sec": 0.315732479095459,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:11",
+    "stop": "19:42:11",
+    "duration_sec": 0.13599848747253418,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:11",
+    "stop": "19:42:11",
+    "duration_sec": 0.1816577911376953,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:12",
+    "stop": "19:42:12",
+    "duration_sec": 0.15084004402160645,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:12",
+    "stop": "19:42:12",
+    "duration_sec": 0.14191246032714844,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:12",
+    "stop": "19:42:12",
+    "duration_sec": 0.1472454071044922,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:13",
+    "stop": "19:42:13",
+    "duration_sec": 0.13788533210754395,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:13",
+    "stop": "19:42:13",
+    "duration_sec": 0.14635348320007324,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:42:13",
+    "stop": "19:42:13",
+    "duration_sec": 0.13807225227355957,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:43:06",
+    "stop": "19:43:07",
+    "duration_sec": 0.14256596565246582,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:43:07",
+    "stop": "19:43:07",
+    "duration_sec": 0.1520223617553711,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:43:07",
+    "stop": "19:43:07",
+    "duration_sec": 0.16340255737304688,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:43:07",
+    "stop": "19:43:08",
+    "duration_sec": 0.1768958568572998,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:43:08",
+    "stop": "19:43:08",
+    "duration_sec": 0.16295695304870605,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "19:43:08",
+    "stop": "19:43:08",
+    "duration_sec": 0.17687726020812988,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:30:01",
+    "stop": "20:30:01",
+    "duration_sec": 0.28560972213745117,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:30:01",
+    "stop": "20:30:01",
+    "duration_sec": 0.19986677169799805,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:30:02",
+    "stop": "20:30:02",
+    "duration_sec": 0.1561281681060791,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:30:02",
+    "stop": "20:30:02",
+    "duration_sec": 0.1634988784790039,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:30:58",
+    "stop": "20:30:58",
+    "duration_sec": 0.15363740921020508,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:30:58",
+    "stop": "20:30:59",
+    "duration_sec": 0.8394720554351807,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:31:20",
+    "stop": "20:31:20",
+    "duration_sec": 0.14580512046813965,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:31:20",
+    "stop": "20:31:20",
+    "duration_sec": 0.1573197841644287,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-04",
+    "start": "20:31:21",
+    "stop": "20:31:22",
+    "duration_sec": 1.4301350116729736,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-15",
+    "start": "18:43:54",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-15",
+    "start": "19:11:10",
+    "stop": "19:11:21",
+    "duration_sec": 10.748311758041382,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-15",
+    "start": "19:12:34",
+    "stop": "19:12:50",
+    "duration_sec": 16.09212636947632,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-15",
+    "start": "20:04:35",
+    "stop": "20:05:53",
+    "duration_sec": 78.58664894104004,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-15",
+    "start": "20:06:20",
+    "stop": "20:06:29",
+    "duration_sec": 8.7977454662323,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-15",
+    "start": "20:19:27",
+    "stop": "20:19:28",
+    "duration_sec": 1.0772366523742676,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-15",
+    "start": "20:19:44",
+    "stop": "20:21:57",
+    "duration_sec": 133.300297498703,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "15:16:47",
+    "stop": "15:16:50",
+    "duration_sec": 2.856869697570801,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "18:31:01",
+    "stop": "18:31:02",
+    "duration_sec": 1.0046765804290771,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "18:31:17",
+    "stop": "18:31:19",
+    "duration_sec": 1.5769271850585938,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "18:31:22",
+    "stop": "18:31:23",
+    "duration_sec": 0.5650818347930908,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "18:31:23",
+    "stop": "18:31:24",
+    "duration_sec": 0.7677402496337891,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "18:31:25",
+    "stop": "18:31:25",
+    "duration_sec": 0.40504002571105957,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:32:13",
+    "stop": "21:32:17",
+    "duration_sec": 3.376361131668091,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:32:17",
+    "stop": "21:32:18",
+    "duration_sec": 0.6448543071746826,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:32:18",
+    "stop": "21:32:19",
+    "duration_sec": 0.6083478927612305,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:32:19",
+    "stop": "21:32:31",
+    "duration_sec": 11.484683275222778,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:32:34",
+    "stop": "21:32:36",
+    "duration_sec": 1.9719853401184082,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:32:36",
+    "stop": "21:32:37",
+    "duration_sec": 0.6792232990264893,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:32:57",
+    "stop": "21:32:59",
+    "duration_sec": 1.679274320602417,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:33:03",
+    "stop": "21:33:05",
+    "duration_sec": 2.0393662452697754,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-17",
+    "start": "21:33:05",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-19",
+    "start": "13:59:49",
+    "stop": "13:59:50",
+    "duration_sec": 0.4256937503814697,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "13:25:27",
+    "stop": "13:25:27",
+    "duration_sec": 0.44933032989501953,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "13:25:28",
+    "stop": "13:25:28",
+    "duration_sec": 0.4070279598236084,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "16:17:21",
+    "stop": "16:17:21",
+    "duration_sec": 0.3036508560180664,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "16:17:22",
+    "stop": "16:17:22",
+    "duration_sec": 0.3146169185638428,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "16:17:22",
+    "stop": "16:17:23",
+    "duration_sec": 0.2891685962677002,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "16:17:23",
+    "stop": "16:17:23",
+    "duration_sec": 0.30069422721862793,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "16:17:24",
+    "stop": "16:17:24",
+    "duration_sec": 0.16043567657470703,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "16:17:24",
+    "stop": "16:17:24",
+    "duration_sec": 0.3035271167755127,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "16:17:25",
+    "stop": "16:17:25",
+    "duration_sec": 0.15578436851501465,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-20",
+    "start": "16:17:25",
+    "stop": "16:17:25",
+    "duration_sec": 0.1849346160888672,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-22",
+    "start": "21:04:09",
+    "stop": "21:04:10",
+    "duration_sec": 0.4569227695465088,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-23",
+    "start": "16:36:39",
+    "stop": "16:36:40",
+    "duration_sec": 1.124502182006836,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-23",
+    "start": "16:36:41",
+    "stop": "16:36:42",
+    "duration_sec": 0.9478981494903564,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-23",
+    "start": "16:36:43",
+    "stop": "16:36:44",
+    "duration_sec": 1.1210389137268066,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-23",
+    "start": "16:36:45",
+    "stop": "16:36:46",
+    "duration_sec": 1.7847483158111572,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-23",
+    "start": "16:36:47",
+    "stop": "16:36:48",
+    "duration_sec": 0.7521300315856934,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-23",
+    "start": "16:37:10",
+    "stop": "16:37:17",
+    "duration_sec": 6.7479963302612305,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-23",
+    "start": "16:37:20",
+    "stop": "16:37:24",
+    "duration_sec": 4.020542144775391,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-23",
+    "start": "16:38:10",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-27",
+    "start": "13:39:40",
+    "stop": "13:39:41",
+    "duration_sec": 0.4270949363708496,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-29",
+    "start": "12:58:18",
+    "stop": "12:58:19",
+    "duration_sec": 1.6996736526489258,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-29",
+    "start": "12:58:22",
+    "stop": "14:35:35",
+    "duration_sec": 5832.839012622833,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-06-29",
+    "start": "15:46:31",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-02",
+    "start": "15:40:02",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-02",
+    "start": "15:53:41",
+    "stop": "15:53:41",
+    "duration_sec": 0.5183265209197998,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-02",
+    "start": "15:53:42",
+    "stop": "15:53:42",
+    "duration_sec": 0.3623979091644287,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-02",
+    "start": "15:58:41",
+    "stop": "15:58:42",
+    "duration_sec": 0.35559892654418945,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-07",
+    "start": "15:20:56",
+    "stop": "15:20:56",
+    "duration_sec": 0.4829559326171875,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-07",
+    "start": "15:22:09",
+    "stop": "15:22:09",
+    "duration_sec": 0.7122211456298828,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-08",
+    "start": "15:21:18",
+    "stop": "15:21:18",
+    "duration_sec": 0.3401050567626953,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-08",
+    "start": "15:21:18",
+    "stop": "15:21:18",
+    "duration_sec": 0.16940641403198242,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-08",
+    "start": "15:21:19",
+    "stop": "15:21:19",
+    "duration_sec": 0.15692830085754395,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-08",
+    "start": "15:21:19",
+    "stop": "15:21:19",
+    "duration_sec": 0.1768953800201416,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-08",
+    "start": "15:21:20",
+    "stop": "15:21:20",
+    "duration_sec": 0.15437078475952148,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-08",
+    "start": "15:21:20",
+    "stop": "15:21:20",
+    "duration_sec": 0.23956513404846191,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-08",
+    "start": "15:21:21",
+    "stop": "15:21:21",
+    "duration_sec": 0.7166733741760254,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-14",
+    "start": "18:27:47",
+    "stop": "18:27:48",
+    "duration_sec": 0.5722529888153076,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-14",
+    "start": "18:27:48",
+    "stop": "18:27:49",
+    "duration_sec": 0.7446177005767822,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-14",
+    "start": "18:27:52",
+    "stop": "18:27:52",
+    "duration_sec": 0.3036339282989502,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-14",
+    "start": "18:27:53",
+    "stop": "18:27:53",
+    "duration_sec": 0.16649270057678223,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-20",
+    "start": "20:06:45",
+    "stop": "20:06:45",
+    "duration_sec": 0.20730257034301758,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-20",
+    "start": "20:10:25",
+    "stop": "20:10:27",
+    "duration_sec": 2.038421154022217,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-20",
+    "start": "20:11:45",
+    "stop": "20:11:46",
+    "duration_sec": 0.5102741718292236,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-20",
+    "start": "20:11:57",
+    "stop": "20:11:57",
+    "duration_sec": 0.4443180561065674,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-20",
+    "start": "20:14:09",
+    "stop": "20:14:10",
+    "duration_sec": 1.4187226295471191,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-20",
+    "start": "20:17:06",
+    "stop": "20:17:07",
+    "duration_sec": 0.8061411380767822,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-20",
+    "start": "20:17:08",
+    "stop": "20:17:09",
+    "duration_sec": 0.9856767654418945,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-22",
+    "start": "13:00:25",
+    "stop": null,
+    "duration_sec": 0.0,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-22",
+    "start": "15:15:26",
+    "stop": "15:15:27",
+    "duration_sec": 0.7766425609588623,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-22",
+    "start": "15:15:29",
+    "stop": "15:15:30",
+    "duration_sec": 0.6839518547058105,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-22",
+    "start": "15:19:28",
+    "stop": "15:19:28",
+    "duration_sec": 0.5616538524627686,
+    "machine_id": "pi-00de9c0a70"
+  },
+  {
+    "date": "2026-07-22",
+    "start": "15:28:01",
+    "stop": "15:28:02",
+    "duration_sec": 0.40144777297973633,
+    "machine_id": "pi-00de9c0a70"
+  }
+]

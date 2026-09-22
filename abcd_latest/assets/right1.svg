@@ -1,0 +1,71 @@
+<svg width="200" height="200" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <line id="bristle" x1="0" y1="-25" x2="0" y2="-45"/>
+
+    <g id="brush">
+      <circle r="25" fill="#444"/>
+      <circle r="25" fill="none" stroke="#0af3f7" stroke-width="3"/>
+
+      <g stroke="#0af3f7" stroke-width="2" stroke-linecap="round">
+        <use href="#bristle" transform="rotate(0)"/>
+        <use href="#bristle" transform="rotate(9)"/>
+        <use href="#bristle" transform="rotate(18)"/>
+        <use href="#bristle" transform="rotate(27)"/>
+        <use href="#bristle" transform="rotate(36)"/>
+        <use href="#bristle" transform="rotate(45)"/>
+        <use href="#bristle" transform="rotate(54)"/>
+        <use href="#bristle" transform="rotate(63)"/>
+        <use href="#bristle" transform="rotate(72)"/>
+        <use href="#bristle" transform="rotate(81)"/>
+        <use href="#bristle" transform="rotate(90)"/>
+        <use href="#bristle" transform="rotate(99)"/>
+        <use href="#bristle" transform="rotate(108)"/>
+        <use href="#bristle" transform="rotate(117)"/>
+        <use href="#bristle" transform="rotate(126)"/>
+        <use href="#bristle" transform="rotate(135)"/>
+        <use href="#bristle" transform="rotate(144)"/>
+        <use href="#bristle" transform="rotate(153)"/>
+        <use href="#bristle" transform="rotate(162)"/>
+        <use href="#bristle" transform="rotate(171)"/>
+        <use href="#bristle" transform="rotate(180)"/>
+        <use href="#bristle" transform="rotate(189)"/>
+        <use href="#bristle" transform="rotate(198)"/>
+        <use href="#bristle" transform="rotate(207)"/>
+        <use href="#bristle" transform="rotate(216)"/>
+        <use href="#bristle" transform="rotate(225)"/>
+        <use href="#bristle" transform="rotate(234)"/>
+        <use href="#bristle" transform="rotate(243)"/>
+        <use href="#bristle" transform="rotate(252)"/>
+        <use href="#bristle" transform="rotate(261)"/>
+        <use href="#bristle" transform="rotate(270)"/>
+        <use href="#bristle" transform="rotate(279)"/>
+        <use href="#bristle" transform="rotate(288)"/>
+        <use href="#bristle" transform="rotate(297)"/>
+        <use href="#bristle" transform="rotate(306)"/>
+        <use href="#bristle" transform="rotate(315)"/>
+        <use href="#bristle" transform="rotate(324)"/>
+        <use href="#bristle" transform="rotate(333)"/>
+        <use href="#bristle" transform="rotate(342)"/>
+        <use href="#bristle" transform="rotate(351)"/>
+      </g>
+
+      <circle r="10" fill="#999"/>
+    </g>
+  </defs>
+
+  <!-- Right wheel / brush clockwise rotation -->
+  <g transform="translate(60,60)">
+    <g>
+      <use href="#brush"/>
+      <animateTransform
+        attributeName="transform"
+        type="rotate"
+        from="0"
+        to="-360"
+        dur="3s"
+        repeatCount="indefinite"/>
+    </g>
+  </g>
+
+</svg>
