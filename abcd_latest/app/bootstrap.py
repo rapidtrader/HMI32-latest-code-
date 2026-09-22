@@ -39,6 +39,7 @@ def run():
     backend_url = ensure_backend_url_configured()
     if backend_url:
         print(f"[CONFIG] Backend URL: {backend_url}")
+        print(f"[CONFIG] API base: {backend_url}/api/")
     else:
         print("[CONFIG] Backend URL missing — edit data/backend.json (backendBaseUrl)")
     from app.config import can_require_response

@@ -16,6 +16,14 @@ RUNTIME_SAVE_MS = 30000
 SOCKET_IO_STATE_EMIT_MS = 5000
 
 
+def _normalize_backend_base(url: str) -> str:
+    """Host only — paths add /api/... (accepts ...com or ...com/api)."""
+    url = str(url or "").strip().rstrip("/")
+    if url.lower().endswith("/api"):
+        url = url[:-4].rstrip("/")
+    return url
+
+
 def _url_from_mapping(data: dict) -> str:
     if not isinstance(data, dict):
         return ""
@@ -25,7 +33,7 @@ def _url_from_mapping(data: dict) -> str:
         or data.get("url")
         or ""
     )
-    url = str(url).strip().rstrip("/")
+    url = _normalize_backend_base(url)
     if url and "REPLACE" not in url.upper():
         return url
     return ""
@@ -87,7 +95,7 @@ def get_backend_base_url() -> str:
     """
     env_url = os.environ.get("BACKEND_BASE_URL", "").strip()
     if env_url:
-        return env_url.rstrip("/")
+        return _normalize_backend_base(env_url)
 
     file_url = _read_backend_config_file()
     if file_url:

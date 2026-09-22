@@ -16,7 +16,8 @@ Events emitted (with namespace default '/'):
 Env vars (see app.config):
   SOCKET_IO_ENABLED=1         set to "0"/"false" to disable
   SOCKET_IO_URL=...           optional override
-  data/backend.json           { "backendBaseUrl": "http://<pc-ip>:4002" }
+  data/backend.json           { "backendBaseUrl": "https://hmi.dynacleanindustries.com" }
+  Local dev example:          { "backendBaseUrl": "http://<pc-ip>:4002" }
   SOCKET_IO_PATH=/socket.io   optional override if server uses custom path
 """
 import json

@@ -18,7 +18,10 @@ def get_backend_base():
         from app.config import get_backend_base_url
         return get_backend_base_url()
     except Exception:
-        return os.environ.get("BACKEND_BASE_URL", "").strip().rstrip("/")
+        url = os.environ.get("BACKEND_BASE_URL", "").strip().rstrip("/")
+        if url.lower().endswith("/api"):
+            url = url[:-4].rstrip("/")
+        return url
 
 
 def _get_json(path, query=None, timeout=10):

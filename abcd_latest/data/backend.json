@@ -1,4 +1,6 @@
 {
   "backendBaseUrl": "https://hmi.dynacleanindustries.com",
-  "canRequireResponse": false
+  "canRequireResponse": false,
+  "_apiEndpoint": "https://hmi.dynacleanindustries.com/api/",
+  "_localDevExample": "http://192.168.1.59:4002"
 }
