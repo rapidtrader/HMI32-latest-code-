@@ -13,7 +13,7 @@ except ImportError:
     print("python-can not installed")
     sys.exit(1)
 
-LISTEN_SEC = 5
+LISTEN_SEC = 
 WANT_IDS = {0x201, 0x202, 0x203, 0x204, 0x205}
 
 print(f"Listening on can0 for {LISTEN_SEC}s (stop main_pyqt5.py first)...")

@@ -1,0 +1,14 @@
+{
+  "notifications": [
+    {
+      "timestamp": "2026-10-09 18:06:08",
+      "message": "RB DOWN: Board/Wiring Issue - Wrong Response",
+      "severity": "error"
+    },
+    {
+      "timestamp": "2026-10-09 17:59:46",
+      "message": "RB DOWN: Board/Wiring Issue - Wrong Response",
+      "severity": "error"
+    }
+  ]
+}
