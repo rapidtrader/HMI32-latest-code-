@@ -42,6 +42,10 @@ const initializeDatabase = async () => {
   const hmi32Users = db.collection('hmi32_users');
   await ensureIndex(hmi32Users, { username: 1 }, { unique: true });
 
+  const cameraVideos = db.collection('camera_videos');
+  await ensureIndex(cameraVideos, { machineId: 1, created_at: -1 });
+  await ensureIndex(cameraVideos, { created_at: -1 });
+
   console.log('MongoDB initialized successfully');
   return db;
 };

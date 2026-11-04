@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import Hmi32Monitor from './components/Hmi32Monitor';
 import MachineInfoPage from './components/MachineInfoPage';
 import ReportsPage from './components/ReportsPage';
+import CameraVideosPage from './components/CameraVideosPage';
 import { ROUTES } from './routes/paths';
 
 const App = () => {
@@ -41,6 +42,7 @@ const App = () => {
         <Route path="monitor" element={<Hmi32Monitor />} />
         <Route path="machine-info" element={<MachineInfoPage />} />
         <Route path="reports" element={<ReportsPage />} />
+        <Route path="camera-videos" element={<CameraVideosPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to={isAuthenticated ? ROUTES.MONITOR : ROUTES.LOGIN} replace />} />

@@ -7,6 +7,7 @@ Environment:
 """
 import json
 import os
+import uuid
 import urllib.error
 import urllib.request
 from datetime import datetime
@@ -368,3 +369,94 @@ def upsert_machine_info(
         return False, e.code, raw[:2000], "error"
     except urllib.error.URLError as e:
         return False, None, str(e.reason), "error"
+
+
+def _encode_multipart(fields, file_field, file_bytes, filename, content_type):
+    boundary = uuid.uuid4().hex
+    chunks = []
+
+    for name, value in fields.items():
+        if value is None:
+            continue
+        chunks.append(f"--{boundary}\r\n".encode())
+        chunks.append(f'Content-Disposition: form-data; name="{name}"\r\n\r\n'.encode())
+        chunks.append(f"{value}\r\n".encode())
+
+    chunks.append(f"--{boundary}\r\n".encode())
+    chunks.append(
+        f'Content-Disposition: form-data; name="{file_field}"; filename="{filename}"\r\n'.encode()
+    )
+    chunks.append(f"Content-Type: {content_type}\r\n\r\n".encode())
+    chunks.append(file_bytes)
+    chunks.append(f"\r\n--{boundary}--\r\n".encode())
+
+    body = b"".join(chunks)
+    content_type_header = f"multipart/form-data; boundary={boundary}"
+    return body, content_type_header
+
+
+def post_camera_video(
+    file_path,
+    machine_id,
+    title=None,
+    camera_channel=None,
+    duration_sec=None,
+    timeout=300,
+):
+    """
+    POST /api/camera-videos — multipart upload (frontend Camera Videos module).
+
+    Returns:
+        (ok: bool, status_code: int|None, body_text: str)
+    """
+    base = get_backend_base()
+    if not base:
+        return False, None, "BACKEND_BASE_URL not configured"
+
+    mid = str(machine_id or "").strip()
+    if not mid:
+        return False, None, "machine_id is empty"
+
+    path = str(file_path or "").strip()
+    if not path or not os.path.isfile(path):
+        return False, None, f"file not found: {path}"
+
+    with open(path, "rb") as f:
+        video_bytes = f.read()
+
+    if len(video_bytes) < 256:
+        return False, None, "video file too small"
+
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".webm":
+        mime = "video/webm"
+    elif ext == ".mp4":
+        mime = "video/mp4"
+    else:
+        mime = "application/octet-stream"
+
+    filename = os.path.basename(path)
+    fields = {
+        "machineId": mid,
+        "title": str(title or filename).strip() or filename,
+        "cameraChannel": str(camera_channel).strip() if camera_channel else None,
+        "durationSec": str(int(duration_sec)) if duration_sec is not None else None,
+    }
+    body, ctype = _encode_multipart(fields, "video", video_bytes, filename, mime)
+
+    url = f"{base}/api/camera-videos"
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": ctype},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+            return 200 <= resp.status < 300, resp.status, text
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode("utf-8", errors="replace") if e.fp else ""
+        return False, e.code, raw
+    except urllib.error.URLError as e:
+        return False, None, str(e.reason)

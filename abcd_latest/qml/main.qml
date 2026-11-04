@@ -43,7 +43,9 @@ ApplicationWindow {
         "MachineInfoPage": "MachineInfoPage.qml",
         "Hmi32Monitor": "Hmi32Monitor.qml",
         "A25Sensor": "A25Sensor.qml",
-        "WaterPressurePage": "WaterPressurePage.qml"
+        "WaterPressurePage": "WaterPressurePage.qml",
+        "CameraPage": "CameraPage.qml",
+        "GpsTrackPage": "GpsTrackPage.qml"
     })
 
     Connections {

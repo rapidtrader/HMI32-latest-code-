@@ -55,10 +55,13 @@ def _one_tick():
 
     data = get_gps_data()
     if data:
-        row["fix_valid"] = True
+        row["fix_valid"] = bool(data.get("fix_valid", True))
         row["latitude"] = data.get("latitude")
         row["longitude"] = data.get("longitude")
         row["timestamp"] = data.get("timestamp")
+        row["speed_kmh"] = data.get("speed_kmh")
+        row["altitude"] = data.get("altitude")
+        row["satellites"] = data.get("satellites")
         try:
             sync = push_gps_reading(
                 get_machine_id(),
@@ -104,5 +107,24 @@ def start_gps_sync_background():
     v = os.environ.get("GPS_SYNC_DISABLED", "").strip().lower()
     if v in ("1", "true", "yes", "on"):
         return
+    from logic.gps import _gps_serial_port
+
+    port = _gps_serial_port()
+    if port and not os.path.exists(port):
+        print(f"[GPS] Port {port} missing — background sync disabled (set GPS_SYNC_DISABLED=1 to silence)")
+        return
+    try:
+        from logic.gps_modem import enable_gps_modem
+
+        enable_gps_modem()
+    except Exception as exc:
+        print(f"[GPS] Modem enable skipped: {exc}")
+    try:
+        from logic.gps_tracker import start_gps_tracker
+
+        start_gps_tracker()
+        print("[GPS] Tracker started (gps-code NMEA parser)")
+    except Exception as exc:
+        print(f"[GPS] Tracker start failed: {exc}")
     t = threading.Thread(target=_loop, daemon=True, name="gps-sync")
     t.start()

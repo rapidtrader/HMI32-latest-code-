@@ -1,6 +1,9 @@
 {
   "backendBaseUrl": "https://hmi.dynacleanindustries.com",
-  "canRequireResponse": false,
+  "canRequireResponse": true,
+  "cameraAutoSave": true,
   "_apiEndpoint": "https://hmi.dynacleanindustries.com/api/",
-  "_localDevExample": "http://192.168.1.59:4002"
+  "_localDevExample": "http://100.90.128.80:4002",
+  "_cameraVideos": "POST /api/camera-videos — deploy latest backend on production first",
+  "_cameraAutoSave": "CAMERA_AUTO_SAVE=1 or cameraAutoSave true; clips → camera_videos.json then server"
 }

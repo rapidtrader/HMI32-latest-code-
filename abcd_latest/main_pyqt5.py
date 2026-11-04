@@ -4,8 +4,8 @@
 import os
 import sys
 
-# Disable GPS background if /dev/serial0 is not available
-os.environ["GPS_SYNC_DISABLED"] = "1"
+os.environ.setdefault("GPS_SERIAL_PORT", "/dev/ttyUSB1")
+os.environ.setdefault("GPS_BAUD", "115200")
 
 # Fix Rockchip / OpenGL crash
 os.environ["QT_QPA_PLATFORM"] = "xcb"

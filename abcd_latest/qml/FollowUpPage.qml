@@ -11,6 +11,7 @@ Rectangle {
     property bool frontDownOn: false
     property bool rearUpOn: false
     property bool rearDownOn: false
+    property bool rearBrushGuard: false
     
     // A25 Sensor distance
     property int a25DistanceMm: 0
@@ -148,8 +149,14 @@ Rectangle {
             else if (cmd === 0x0F) page.frontDownButtonColor = color
             else if (cmd === 0x0B) page.rightRetractButtonColor = color
             else if (cmd === 0x0A) page.rightExtractButtonColor = color
-            else if (cmd === 0x0C) page.rearUpButtonColor = color
-            else if (cmd === 0x0D) page.rearDownButtonColor = color
+            else if (cmd === 0x0C) {
+                page.rearUpButtonColor = color
+                page.rearUpOn = (color === "green")
+            }
+            else if (cmd === 0x0D) {
+                page.rearDownButtonColor = color
+                page.rearDownOn = (color === "green")
+            }
         }
     }
 
@@ -174,6 +181,13 @@ Rectangle {
         onA25Changed: refreshA25Data()
     }
     
+    Timer {
+        id: rearBrushGuardTimer
+        interval: 450
+        repeat: false
+        onTriggered: page.rearBrushGuard = false
+    }
+
     Timer {
         id: a25RefreshTimer
         interval: 200
@@ -1332,6 +1346,10 @@ Rectangle {
                                 }
 
                                 onClicked: {
+                                    if (page.rearBrushGuard)
+                                        return
+                                    page.rearBrushGuard = true
+                                    rearBrushGuardTimer.restart()
                                     if (!page.rearUpOn) {
                                         page.rearUpOn = true
                                         page.rearDownOn = false
@@ -1375,6 +1393,10 @@ Rectangle {
                                 }
 
                                 onClicked: {
+                                    if (page.rearBrushGuard)
+                                        return
+                                    page.rearBrushGuard = true
+                                    rearBrushGuardTimer.restart()
                                     if (!page.rearDownOn) {
                                         page.rearDownOn = true
                                         page.rearUpOn = false

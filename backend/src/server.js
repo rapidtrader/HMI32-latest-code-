@@ -9,9 +9,12 @@ const Hmi32Latest = require('./models/Hmi32Latest');
 const SuctionSession = require('./models/SuctionSession');
 const RuntimeData = require('./models/RuntimeData');
 const { registerUser, loginUser, verifyToken, isSignupAllowed } = require('./services/authService');
+const cameraVideosRouter = require('./routes/cameraVideos');
+const CameraVideo = require('./models/CameraVideo');
 const app = express();
 const httpServer = http.createServer(app);
 const PORT = process.env.PORT || 4002;
+const HOST = process.env.HOST || '0.0.0.0';
 
 const corsOrigins = [
   // Production domain
@@ -26,7 +29,8 @@ const corsOrigins = [
 ];
 
 app.use(cors({ origin: corsOrigins, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
+app.use('/api/camera-videos', cameraVideosRouter);
 
 const io = new SocketIOServer(httpServer, {
   cors: { origin: corsOrigins, credentials: true },
@@ -575,8 +579,9 @@ const startServer = async () => {
     await initializeDatabase();
     await SuctionSession.ensureIndexes().catch((e) => console.warn('SuctionSession index warn:', e.message));
     await RuntimeData.ensureIndexes().catch((e) => console.warn('RuntimeData index warn:', e.message));
+    await CameraVideo.ensureIndexes().catch((e) => console.warn('CameraVideo index warn:', e.message));
 
-    httpServer.listen(PORT, '0.0.0.0', () => {
+    httpServer.listen(PORT, HOST, () => {
       const dbName = process.env.MONGODB_DB_NAME || 'gpsDB';
       const os = require('os');
       const lanIps = Object.values(os.networkInterfaces())
@@ -584,7 +589,7 @@ const startServer = async () => {
         .filter((n) => n && n.family === 'IPv4' && !n.internal)
         .map((n) => n.address);
 
-      console.log(`HMI32 backend running on http://localhost:${PORT}`);
+      console.log(`HMI32 backend listening on http://${HOST}:${PORT} (LAN + localhost)`);
       if (lanIps.length) {
         console.log('[network] Pi/backend.json should use one of these URLs:');
         lanIps.forEach((ip) => console.log(`  http://${ip}:${PORT}`));

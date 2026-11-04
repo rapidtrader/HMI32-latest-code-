@@ -1,0 +1,7 @@
+{
+  "_comment": "Keys = UI CH1–CH4. Nodes: video0–3 = stream_cif_mipi_id0–3. This PCB: CH1→id1, CH2→id2, CH3→id3, CH4→id0. Edit after find_camera_device.sh on each BNC.",
+  "1": "/dev/video1",
+  "2": "/dev/video2",
+  "3": "/dev/video3",
+  "4": "/dev/video0"
+}

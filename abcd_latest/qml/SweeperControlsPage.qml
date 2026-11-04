@@ -48,15 +48,24 @@ Rectangle {
             else if (cmd === 0x11) page.sweepingButtonColor = color
             else if (cmd === 0x02) {
                 page.jetButtonColor = color
-                page.jetState = machineBridge.getGpioState(0x02)
+                if (color === "green")
+                    page.jetState = true
+                else if (color === "default" || color === "red")
+                    page.jetState = false
             }
             else if (cmd === 0x03) {
                 page.sprayButtonColor = color
-                page.sprayState = machineBridge.getGpioState(0x03)
+                if (color === "green")
+                    page.sprayState = true
+                else if (color === "default" || color === "red")
+                    page.sprayState = false
             }
             else if (cmd === 0x01) {
                 page.suctionButtonColor = color
-                page.suctionState = machineBridge.getGpioState(0x01)
+                if (color === "green")
+                    page.suctionState = true
+                else if (color === "default" || color === "red")
+                    page.suctionState = false
             }
             else if (cmd === 0x12) page.fcaOpenButtonColor = color
             else if (cmd === 0x13) page.fcaCloseButtonColor = color
@@ -342,7 +351,7 @@ Rectangle {
                     id: notificationList
                     anchors.fill: parent
                     anchors.margins: 8
-                    model: machineBridge.getNotificationHistoryModel()
+                    model: machineBridge.notificationHistoryModel
                     spacing: 4
                     clip: true
 

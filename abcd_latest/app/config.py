@@ -8,6 +8,7 @@ QML_DIR = os.path.join(BASE_DIR, "qml")
 ASSETS_DIR = os.path.join(BASE_DIR, "assets")
 MACHINE_INFO_FILE = os.path.join(DATA_DIR, "machine_info.json")
 BACKEND_CONFIG_FILE = os.path.join(DATA_DIR, "backend.json")
+VIDEO_CLIPS_DIR = os.path.join(DATA_DIR, "video_clips")
 MAIN_QML = os.path.join(QML_DIR, "main.qml")
 
 APP_NAME = "DYNACLEAN EV Sweeper HMI"
@@ -123,6 +124,22 @@ def get_socket_io_enabled():
     return val in ("1", "true", "yes", "on")
 
 
+def apply_backend_json_runtime_env() -> None:
+    """
+    Optional keys in data/backend.json (no export needed on Pi):
+      cameraAutoSave: true | false  → CAMERA_AUTO_SAVE=1|0
+    """
+    cfg = _read_backend_config_data()
+    if "cameraAutoSave" not in cfg:
+        return
+    raw = cfg.get("cameraAutoSave")
+    if isinstance(raw, bool):
+        on = raw
+    else:
+        on = str(raw).strip().lower() in ("1", "true", "yes", "on")
+    os.environ["CAMERA_AUTO_SAVE"] = "1" if on else "0"
+
+
 def can_require_response() -> bool:
     """
     When False, UI turns GREEN after CAN send succeeds (no 0x202 wait).
@@ -175,6 +192,13 @@ def show_error(message: str, severity: str = "error"):
 
 def ensure_paths():
     os.makedirs(DATA_DIR, exist_ok=True)
+    os.makedirs(VIDEO_CLIPS_DIR, exist_ok=True)
+    try:
+        from logic.camera_videos_store import ensure_store_file
+
+        ensure_store_file()
+    except Exception as exc:
+        print(f"[CONFIG] camera_videos.json init skipped: {exc}")
     if BASE_DIR not in sys.path:
         sys.path.insert(0, BASE_DIR)
 

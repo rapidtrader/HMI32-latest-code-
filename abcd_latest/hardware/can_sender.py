@@ -25,7 +25,7 @@ except ImportError:
     _CAN_AVAILABLE = False
     print("[DEBUG] python-can NOT installed — CAN disabled")    
 
-from app.config import show_error
+from app.config import can_require_response, show_error
 
 CAN_INTERFACE = "can0"
 CAN_ID = 0x200
@@ -119,6 +119,8 @@ _a25_debug_info = ""  # For detailed debugging
 _distance_callbacks = []
 _gpio_status_callbacks = []
 _send_success_callbacks = []
+_send_fail_callbacks = []
+_recv_bus_none_last_log = 0.0
 _suction_adc_callbacks = []
 _pa0_adc_callbacks = []
 _a25_callbacks = []
@@ -293,6 +295,26 @@ def register_gpio_status_callback(callback):
 def register_send_success_callback(callback):
     """Register a callback when a CAN command is sent on the bus (cmd, state)."""
     _send_success_callbacks.append(callback)
+
+
+def register_send_fail_callback(callback):
+    """Register when a queued CAN command could not be sent (cmd, reason)."""
+    _send_fail_callbacks.append(callback)
+
+
+def is_can_bus_ready() -> bool:
+    """True when socketcan send + receive paths are open (real hardware)."""
+    if not _CAN_AVAILABLE:
+        return False
+    return _get_send_bus() is not None and _get_recv_bus() is not None
+
+
+def _notify_send_fail(cmd: int, reason: str) -> None:
+    for callback in _send_fail_callbacks:
+        try:
+            callback(cmd, reason)
+        except Exception as e:
+            print(f"[DEBUG] send_fail callback error: {e}")
 
 
 def register_suction_adc_callback(callback):
@@ -495,8 +517,12 @@ def _can_receiver():
             bus = _get_recv_bus()
 
             if bus is None:
-                print("[DEBUG] CAN recv bus is None, waiting...")
-                time.sleep(0.1)
+                global _recv_bus_none_last_log
+                now = time.monotonic()
+                if now - _recv_bus_none_last_log >= 5.0:
+                    print("[DEBUG] CAN recv bus is None, waiting for can0...")
+                    _recv_bus_none_last_log = now
+                time.sleep(0.5)
                 continue
 
             msg = bus.recv(timeout=0.1)
@@ -678,8 +704,8 @@ def _can_worker():
 
             bus = _get_send_bus()
             if bus is None:
-                print(f"ERROR: CAN network is down, cannot send {name} {label}")
-                # Add error log entry
+                err_msg = "CAN network is down"
+                print(f"ERROR: {err_msg}, cannot send {name} {label}")
                 timestamp = _get_timestamp_ms()
                 _message_log.append({
                     "timestamp": timestamp,
@@ -691,10 +717,11 @@ def _can_worker():
                     "name": name,
                     "pin": pin,
                     "error": True,
-                    "error_msg": "CAN network is down"
+                    "error_msg": err_msg,
                 })
                 if len(_message_log) > _max_log_entries:
                     _message_log.pop(0)
+                _notify_send_fail(cmd, err_msg)
                 _msg_queue.task_done()
                 continue
 
@@ -729,13 +756,18 @@ def _can_worker():
                         break
             
             if success:
-                print(f"SUCCESS: {name} {label} {pin} (sent successfully)")
+                _gpio_status[cmd] = state
+                print(
+                    f"SUCCESS: {name} {label} {pin} (sent successfully) "
+                    f"[cansend {CAN_INTERFACE} {CAN_ID:03X}#{cmd:02X}{state:02X}]"
+                )
                 for callback in _send_success_callbacks:
                     try:
                         callback(cmd, state)
                     except Exception as e:
                         print(f"[DEBUG] send_success callback error: {e}")
             else:
+                _notify_send_fail(cmd, f"Failed to send {name} {label}")
                 # Add error log entry
                 timestamp = _get_timestamp_ms()
                 _message_log.append({
@@ -794,8 +826,14 @@ def can_send(cmd: int, state: int, force: bool = False) -> bool:
     global _last_cmd, _last_state
     print(f"[DEBUG] can_send() called: cmd=0x{cmd:02X}, state={state}, force={force}")
     if not _CAN_AVAILABLE:
+        if can_require_response():
+            print(
+                f"[DEBUG] CAN not available — not simulating 0x202 for "
+                f"{COMMAND_NAMES.get(cmd, f'CMD_0x{cmd:02X}')} (response required)"
+            )
+            return False
         print(f"[DEBUG] CAN not available, simulating {COMMAND_NAMES.get(cmd, f'CMD_0x{cmd:02X}')} {'ON' if state else 'OFF'}")
-        # Simulate a reply after a short delay for testing
+        # Simulate a reply after a short delay for testing (optimistic mode only)
         def simulate_reply():
             import time
             time.sleep(0.2)  # 200ms delay to simulate STM32 processing
@@ -819,16 +857,23 @@ def can_send(cmd: int, state: int, force: bool = False) -> bool:
                 except Exception as e:
                     print(f"[DEBUG] Simulated GPIO callback error: {e}")
         threading.Thread(target=simulate_reply, daemon=True).start()
-        return False
+        return True
     
     # Skip duplicate consecutive messages unless force is True
     if not force and _last_cmd == cmd and _last_state == state:
         print(f"[DEBUG] Skipping duplicate CAN msg: cmd=0x{cmd:02X}, state={state}")
-        return True
+        return False
     
     # Limit queue size to prevent memory issues and buffer overflow
     if _msg_queue.qsize() > 20:
         print(f"[DEBUG] CAN queue full, skipping msg: cmd=0x{cmd:02X}, state={state}")
+        return False
+
+    if can_require_response() and not is_can_bus_ready():
+        print(
+            f"[DEBUG] CAN bus not ready (can0 send/recv) — "
+            f"refusing cmd=0x{cmd:02X} until 0x202 can be received"
+        )
         return False
     
     _start_worker()
@@ -841,8 +886,10 @@ def can_send(cmd: int, state: int, force: bool = False) -> bool:
 def set_suction_speed(percent: int) -> bool:
     """Set suction speed (0-100%) via CAN command 0x15."""
     if not _CAN_AVAILABLE:
+        if can_require_response():
+            print("[DEBUG] CAN not available — not simulating suction speed (response required)")
+            return False
         print(f"[DEBUG] CAN not available, simulating suction speed {percent}%")
-        # Simulate a reply for testing
         def simulate_reply():
             import time
             time.sleep(0.2)
@@ -865,7 +912,7 @@ def set_suction_speed(percent: int) -> bool:
                 except Exception as e:
                     print(f"[DEBUG] Simulated suction speed callback error: {e}")
         threading.Thread(target=simulate_reply, daemon=True).start()
-        return False
+        return True
     
     # Clamp percent to 0-100
     clamped_percent = max(0, min(100, percent))

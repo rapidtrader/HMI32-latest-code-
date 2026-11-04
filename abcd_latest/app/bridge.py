@@ -1,12 +1,14 @@
-from PyQt5.QtCore import QObject, QTimer, pyqtSlot, pyqtSignal, Qt, QDateTime, QThread, QMetaObject, Q_ARG
+from PyQt5.QtCore import QObject, QTimer, pyqtSlot, pyqtSignal, Qt, QDateTime, QThread, QMetaObject, Q_ARG, pyqtProperty
 from PyQt5.QtCore import QAbstractListModel, QModelIndex
+from PyQt5.QtQml import QQmlEngine
 import json
 import os
+import time
 from datetime import datetime
 
 from app import machine_info_store as store
 from app.config import SYNC_INTERVAL_MS, SOCKET_IO_STATE_EMIT_MS, can_require_response
-from app.worker import run_background
+from app.worker import run_background, run_machine_background
 from logic.machine_logic import (
     Machine,
     get_daily_runtimes,
@@ -27,6 +29,7 @@ from logic.machine_logic import (
     get_rear_up_state,
     get_rear_down_state,
     set_can_send_callback,
+    set_can_send_cancel_callback,
 )   
 from logic.machine_identity import read_or_create_machine_id
 from hardware.can_sender import (
@@ -43,6 +46,8 @@ from hardware.can_sender import (
     register_distance_callback,
     register_gpio_status_callback,
     register_send_success_callback,
+    register_send_fail_callback,
+    is_can_bus_ready,
     register_suction_adc_callback,
     register_pa0_adc_callback,
     register_a25_callback,
@@ -66,8 +71,8 @@ class NotificationHistory(QAbstractListModel):
     NOTIFICATION_FILE = "data/error_log.json"
     MAX_NOTIFICATIONS = 50
     
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent)
         self.notifications = []
         self._load_from_file()
     
@@ -186,7 +191,8 @@ class MachineBridge(QObject):
         super().__init__()
 
         self.machine = Machine()
-        self.notification_history = NotificationHistory()
+        self.notification_history = NotificationHistory(self)
+        QQmlEngine.setObjectOwnership(self.notification_history, QQmlEngine.CppOwnership)
 
         self._sync_timer = QTimer(self)
         self._sync_timer.timeout.connect(self._schedule_api_sync)
@@ -223,6 +229,7 @@ class MachineBridge(QObject):
         register_distance_callback(self._on_distance_update)
         register_gpio_status_callback(self._on_gpio_status_update)
         register_send_success_callback(self._on_can_send_success_threadsafe)
+        register_send_fail_callback(self._on_can_send_failed_threadsafe)
         register_suction_adc_callback(self._on_suction_adc_update)
         register_pa0_adc_callback(self._on_pa0_adc_update)
         register_a25_callback(self._on_a25_update)
@@ -230,20 +237,57 @@ class MachineBridge(QObject):
         # Button state tracking
         self._button_colors = {}
         self._pending_commands = {}
+        self._pending_bus_sent = {}
         self._timeout_timers = {}
+        self._trusted_ui_cmd = {}
 
         for cmd in COMMAND_NAMES:
             self._button_colors[cmd] = COLOR_DEFAULT
             self._pending_commands[cmd] = None
+            self._pending_bus_sent[cmd] = False
             self._timeout_timers[cmd] = None
+            self._trusted_ui_cmd[cmd] = None
 
         # Machine logic will call this when it wants to send CAN
         set_can_send_callback(self.send_can_command_with_ui_feedback)
+        set_can_send_cancel_callback(self.cancel_command_ui_feedback)
+
+        if can_require_response():
+            QTimer.singleShot(800, self._sync_button_colors_from_bus)
 
         self._socket_state_timer = QTimer(self)
         self._socket_state_timer.timeout.connect(self._emit_socket_state_snapshot)
         self._socket_state_timer.start(SOCKET_IO_STATE_EMIT_MS)
         QTimer.singleShot(3000, self._emit_socket_state_snapshot)
+
+    @pyqtProperty(QAbstractListModel, constant=True)
+    def notificationHistoryModel(self):
+        """Stable model reference for QML ListView (do not use getNotificationHistoryModel())."""
+        return self.notification_history
+
+    def _append_error_notification(self, message: str) -> None:
+        """Add error notification; no-op if model was destroyed during shutdown."""
+        nh = self.notification_history
+        if nh is None:
+            return
+        try:
+            import sip
+
+            if sip.isdeleted(nh):
+                return
+        except ImportError:
+            pass
+        try:
+            nh.add_notification(message, "error")
+            self.notificationHistoryChanged.emit()
+        except RuntimeError:
+            pass
+
+    def _cancel_all_command_timeouts(self) -> None:
+        for cmd, timer in list(self._timeout_timers.items()):
+            if timer is not None:
+                timer.stop()
+            self._timeout_timers[cmd] = None
 
     def _collect_current_states(self):
         return {
@@ -369,22 +413,104 @@ class MachineBridge(QObject):
                 self._button_colors[cmd] = color
                 self.commandButtonColorChanged.emit(cmd, color)
 
+    @staticmethod
+    def _color_for_gpio_state(state: int) -> str:
+        return COLOR_GREEN if int(state) == 1 else COLOR_DEFAULT
+
+    def _note_trusted_ui(self, cmd: int, state: int) -> None:
+        """After 0x200 send OK — ignore conflicting 0x202 for a few seconds."""
+        self._trusted_ui_cmd[cmd] = (int(state), time.monotonic())
+
+    def _bus_gpio_conflicts_trusted_ui(self, cmd: int, bus_state: int) -> bool:
+        entry = self._trusted_ui_cmd.get(cmd)
+        if not entry:
+            return False
+        sent_state, when = entry
+        if time.monotonic() - when > 5.0:
+            return False
+        if int(bus_state) == sent_state:
+            return False
+        cmd_name = COMMAND_NAMES.get(cmd, f"CMD 0x{cmd:02X}")
+        print(
+            f"[DEBUG] Ignoring stale 0x202 cmd=0x{cmd:02X} ({cmd_name}) "
+            f"state={bus_state} (UI trust={sent_state} from recent 0x200)"
+        )
+        return True
+
+    def _apply_bus_gpio_state(self, cmd: int, state: int):
+        """Drive UI from CAN 0x202 when it matches recent send or no trust lock."""
+        if self._bus_gpio_conflicts_trusted_ui(cmd, state):
+            return
+        self.set_button_color(cmd, self._color_for_gpio_state(state))
+
+    @pyqtSlot()
+    def _sync_button_colors_from_bus(self):
+        if not can_require_response():
+            return
+        if not is_can_bus_ready():
+            return
+        for cmd in COMMAND_NAMES:
+            if self._pending_commands.get(cmd) is not None:
+                continue
+            self._apply_bus_gpio_state(cmd, get_gpio_state(cmd))
+
+    @pyqtSlot(int)
+    def cancel_command_ui_feedback(self, cmd: int):
+        """Revert pending UI when CAN frame was not queued."""
+        self._fail_pending_command(cmd, "CAN command not sent", notify=False)
+
+    def _fail_pending_command(self, cmd: int, reason: str, notify: bool = True):
+        if self._pending_commands.get(cmd) is None:
+            return
+        cmd_name = COMMAND_NAMES.get(cmd, f"CMD 0x{cmd:02X}")
+        print(f"[DEBUG] CAN pending failed cmd=0x{cmd:02X} ({cmd_name}): {reason} -> RED")
+        self.set_button_color(cmd, COLOR_RED)
+        self._pending_commands[cmd] = None
+        self._pending_bus_sent[cmd] = False
+        if self._timeout_timers.get(cmd):
+            self._timeout_timers[cmd].stop()
+            self._timeout_timers[cmd] = None
+        if notify:
+            front_brush_commands = [0x0E, 0x0F, 0x08, 0x09, 0x0A, 0x0B]
+            if cmd not in front_brush_commands:
+                self._append_error_notification(f"{cmd_name}: {reason}")
+        self._emit_socket_state_snapshot()
+
+    def _on_can_send_failed_threadsafe(self, cmd: int, reason: str):
+        QMetaObject.invokeMethod(
+            self,
+            "_on_can_send_failed",
+            Qt.QueuedConnection,
+            Q_ARG(int, cmd),
+            Q_ARG(str, reason),
+        )
+
+    @pyqtSlot(int, str)
+    def _on_can_send_failed(self, cmd: int, reason: str):
+        self._fail_pending_command(cmd, reason or "CAN send failed", notify=True)
+
     def _on_command_timeout(self, cmd: int):
         """Handle command timeout."""
         if cmd in self._pending_commands and self._pending_commands[cmd] is not None:
+            expected = self._pending_commands[cmd]
             cmd_name = COMMAND_NAMES.get(cmd, f"CMD 0x{cmd:02X}")
-            print(f"[DEBUG] CAN reply timeout cmd=0x{cmd:02X} ({cmd_name}) -> RED")
-            self.set_button_color(cmd, COLOR_RED)
+            if self._pending_bus_sent.get(cmd):
+                color = self._color_for_gpio_state(expected)
+                print(
+                    f"[DEBUG] CAN 0x202 timeout cmd=0x{cmd:02X} ({cmd_name}) "
+                    f"but 0x200 sent OK -> {color} (no STM32 ack)"
+                )
+                self.set_button_color(cmd, color)
+            else:
+                print(f"[DEBUG] CAN reply timeout cmd=0x{cmd:02X} ({cmd_name}) -> RED")
+                self.set_button_color(cmd, COLOR_RED)
+                front_brush_commands = [0x0E, 0x0F, 0x08, 0x09, 0x0A, 0x0B]
+                if cmd not in front_brush_commands:
+                    error_msg = f"{cmd_name}: CAN Network Down - No Response"
+                    self._append_error_notification(error_msg)
+
             self._pending_commands[cmd] = None
-
-            # Front brush commands - disable notifications for these
-            front_brush_commands = [0x0E, 0x0F, 0x08, 0x09, 0x0A, 0x0B]
-
-            # Add to history but don't show popup
-            if cmd not in front_brush_commands:
-                error_msg = f"{cmd_name}: CAN Network Down - No Response"
-                self.notification_history.add_notification(error_msg, "error")
-                self.notificationHistoryChanged.emit()
+            self._pending_bus_sent[cmd] = False
 
             if self._timeout_timers.get(cmd):
                 self._timeout_timers[cmd].stop()
@@ -417,6 +543,7 @@ class MachineBridge(QObject):
         print(f"[DEBUG] Button clicked cmd=0x{cmd:02X} state={state} -> BLUE (pending armed)")
         self.set_button_color(cmd, COLOR_BLUE)
         self._pending_commands[cmd] = state
+        self._pending_bus_sent[cmd] = False
 
         # Timeout after 3 seconds
         timeout_timer = QTimer(self)
@@ -428,33 +555,40 @@ class MachineBridge(QObject):
         self._emit_socket_state_snapshot()
 
     def _on_can_send_success_threadsafe(self, cmd: int, state: int):
-        if can_require_response():
-            return
         QMetaObject.invokeMethod(
             self,
-            "_on_can_send_success",
+            "_on_can_bus_send_ok",
             Qt.QueuedConnection,
             Q_ARG(int, cmd),
             Q_ARG(int, state),
         )
 
     @pyqtSlot(int, int)
-    def _on_can_send_success(self, cmd: int, state: int):
-        """Optimistic UI: GREEN after bus send when 0x202 response is not required."""
-        if self._pending_commands.get(cmd) is None:
+    def _on_can_bus_send_ok(self, cmd: int, state: int):
+        """Bus send succeeded — update UI (0x202 may still arrive later)."""
+        pending = self._pending_commands.get(cmd)
+        if pending is not None and pending != state:
             return
+        self._pending_bus_sent[cmd] = True
         cmd_name = COMMAND_NAMES.get(cmd, f"CMD 0x{cmd:02X}")
         if state == 1:
-            print(f"[DEBUG] CAN sent cmd=0x{cmd:02X} ({cmd_name}) -> GREEN (no 0x202 wait)")
+            print(f"[DEBUG] CAN sent cmd=0x{cmd:02X} ({cmd_name}) -> GREEN (0x200 OK)")
             self.set_button_color(cmd, COLOR_GREEN)
         else:
-            print(f"[DEBUG] CAN sent cmd=0x{cmd:02X} ({cmd_name}) -> DEFAULT (no 0x202 wait)")
+            print(f"[DEBUG] CAN sent cmd=0x{cmd:02X} ({cmd_name}) -> DEFAULT (0x200 OK)")
             self.set_button_color(cmd, COLOR_DEFAULT)
         self._pending_commands[cmd] = None
+        self._pending_bus_sent[cmd] = False
         if self._timeout_timers.get(cmd):
             self._timeout_timers[cmd].stop()
             self._timeout_timers[cmd] = None
+        self._note_trusted_ui(cmd, state)
         self._emit_socket_state_snapshot()
+
+    @pyqtSlot(int, int)
+    def _on_can_send_success(self, cmd: int, state: int):
+        """Legacy name — use _on_can_bus_send_ok."""
+        self._on_can_bus_send_ok(cmd, state)
 
     def on_gpio_status_received(self, cmd: int, state: int):
         """Handle GPIO status received from STM32."""
@@ -477,51 +611,53 @@ class MachineBridge(QObject):
             cmd_name = COMMAND_NAMES.get(cmd, f"CMD 0x{cmd:02X}")
 
             if expected_state == state:
-                if state == 1:
-                    print(f"[DEBUG] CAN 0x202 received cmd=0x{cmd:02X} ({cmd_name}) state={state} -> GREEN")
-                    self.set_button_color(cmd, COLOR_GREEN)
-                else:
-                    print(f"[DEBUG] CAN 0x202 received cmd=0x{cmd:02X} ({cmd_name}) state={state} -> DEFAULT")
-                    self.set_button_color(cmd, COLOR_DEFAULT)
+                print(
+                    f"[DEBUG] CAN 0x202 confirmed cmd=0x{cmd:02X} ({cmd_name}) "
+                    f"state={state} -> {self._color_for_gpio_state(state)}"
+                )
+                self._apply_bus_gpio_state(cmd, state)
             else:
                 print(
                     f"[DEBUG] CAN 0x202 received cmd=0x{cmd:02X} ({cmd_name}) "
                     f"state={state} expected={expected_state} -> RED"
                 )
                 self.set_button_color(cmd, COLOR_RED)
-                
+
                 # Add to history but don't show popup
                 if cmd not in front_brush_commands:
                     error_msg = f"{cmd_name}: Board/Wiring Issue - Wrong Response"
-                    self.notification_history.add_notification(error_msg, "error")
-                    self.notificationHistoryChanged.emit()
+                    self._append_error_notification(error_msg)
 
             self._pending_commands[cmd] = None
+            self._pending_bus_sent[cmd] = False
 
             if self._timeout_timers.get(cmd):
                 self._timeout_timers[cmd].stop()
                 self._timeout_timers[cmd] = None
 
+        elif can_require_response() and is_can_bus_ready():
+            cmd_name = COMMAND_NAMES.get(cmd, f"CMD 0x{cmd:02X}")
+            print(
+                f"[DEBUG] CAN 0x202 bus status cmd=0x{cmd:02X} ({cmd_name}) "
+                f"state={state} -> {self._color_for_gpio_state(state)}"
+            )
+            self._apply_bus_gpio_state(cmd, state)
+
         else:
-            # Check if this status update is for a command in a mutual exclusion group
-            is_in_exclusion_group = False
-            if cmd in group_litter_sweeping:
-                is_in_exclusion_group = True
-            elif cmd in group_up_down:
-                is_in_exclusion_group = True
-            elif cmd in group_extract_retract:
-                is_in_exclusion_group = True
+            # Optimistic mode: only mutual-exclusion groups follow live 0x202.
+            is_in_exclusion_group = (
+                cmd in group_litter_sweeping
+                or cmd in group_up_down
+                or cmd in group_extract_retract
+            )
 
             if is_in_exclusion_group:
-                # This is an automatic status update for a mutually exclusive command
                 if state == 0:
                     print(f"[DEBUG] CAN 0x202 received auto-off cmd=0x{cmd:02X} -> DEFAULT")
-                    self.set_button_color(cmd, COLOR_DEFAULT)
                 else:
                     print(f"[DEBUG] CAN 0x202 received auto-on cmd=0x{cmd:02X} -> GREEN")
-                    self.set_button_color(cmd, COLOR_GREEN)
+                self._apply_bus_gpio_state(cmd, state)
             else:
-                # Periodic status received, but no command is pending.
                 print(f"[DEBUG] Periodic status ignored for UI color: cmd=0x{cmd:02X}, state={state}")
 
         self._emit_socket_state_snapshot()
@@ -607,7 +743,10 @@ class MachineBridge(QObject):
         run_background(label, fn)
 
     def _machine(self, attr: str):
-        self._run(attr, getattr(self.machine, attr))
+        self._run_machine(attr, getattr(self.machine, attr))
+
+    def _run_machine(self, label: str, fn):
+        run_machine_background(label, fn)
 
     def _schedule_api_sync(self):
         run_background("machine_config_sync", store.sync_from_api)

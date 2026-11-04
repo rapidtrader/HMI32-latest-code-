@@ -40,6 +40,17 @@ Rectangle {
         }
 
 
+        ScrollView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            clip: true
+            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+
+            ColumnLayout {
+                width: sidebar.width
+                spacing: 0
+
         SidebarItem {
             iconText: "🔄"
             labelText: "Operations"
@@ -128,9 +139,30 @@ Rectangle {
             onClicked: sidebar.pageRequested("WaterPressurePage")
         }
 
+        SidebarItem {
+            iconText: "📷"
+            labelText: "Cameras"
+            pageName: "CameraPage"
+            isActive: sidebar.activeItem === "CameraPage"
+            bg: sidebar.bg; bgCard: sidebar.bgCard; bgCardHover: sidebar.bgCardHover
+            bgCardActive: sidebar.bgCardActive; iconColor: sidebar.iconColor
+            iconHover: sidebar.iconHover; text: sidebar.text
+            onClicked: sidebar.pageRequested("CameraPage")
+        }
 
+        SidebarItem {
+            iconText: "📍"
+            labelText: "GPS Track"
+            pageName: "GpsTrackPage"
+            isActive: sidebar.activeItem === "GpsTrackPage"
+            bg: sidebar.bg; bgCard: sidebar.bgCard; bgCardHover: sidebar.bgCardHover
+            bgCardActive: sidebar.bgCardActive; iconColor: sidebar.iconColor
+            iconHover: sidebar.iconHover; text: sidebar.text
+            onClicked: sidebar.pageRequested("GpsTrackPage")
+        }
 
-        Item { Layout.fillWidth: true; Layout.fillHeight: true }
+            }
+        }
 
         Item {
             Layout.fillWidth: true

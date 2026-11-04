@@ -78,23 +78,39 @@ _can_states = {
 }
 
 _can_send_callback = None
+_can_send_cancel_callback = None
 
 def set_can_send_callback(callback):
     """Set the callback for sending CAN messages (for UI feedback)."""
     global _can_send_callback
     _can_send_callback = callback
 
+
+def set_can_send_cancel_callback(callback):
+    """Clear pending UI when CAN message was not queued (duplicate / bus full)."""
+    global _can_send_cancel_callback
+    _can_send_cancel_callback = callback
+
+
 def _send_can(cmd: int, state: int, force: bool = False):
     """Send CAN message and update UI feedback."""
-    global _can_states, _can_send_callback
+    global _can_states, _can_send_callback, _can_send_cancel_callback
+    # force=True for explicit OFF from UI (e.g. rearBrushUpOff) even if _can_states desynced
     if force or _can_states.get(cmd) != state:
-        # Arm UI pending on main thread BEFORE sending so 0x202 is not missed.
         if _can_send_callback:
             try:
                 _can_send_callback(cmd, state)
             except Exception as e:
                 print(f"[DEBUG] CAN UI callback error: {e}")
-        can_send(cmd, state, force)
+        send_force = force or (_can_states.get(cmd) == 1 and state == 0)
+        sent = can_send(cmd, state, send_force)
+        if not sent:
+            if _can_send_cancel_callback:
+                try:
+                    _can_send_cancel_callback(cmd)
+                except Exception as e:
+                    print(f"[DEBUG] CAN UI cancel callback error: {e}")
+            return
         try:
             from logic.socket_client import emit_can_command
             emit_can_command(cmd, state)
@@ -558,7 +574,7 @@ class Machine:
         global _pa0_fan_start_time, _suction_total_seconds, _daily_seconds
         # print(f"SUCTION OFF{relay_log('SUCTION')}")
         hw.SUCTION.off()
-        _send_can(0x01, 0)
+        _send_can(0x01, 0, force=True)
         if _pa0_fan_start_time is not None:
             delta = time.time() - _pa0_fan_start_time
             _pa0_fan_start_time = None
@@ -580,7 +596,7 @@ class Machine:
     def jet_off(self):
         # print(f"JET OFF{relay_log('JET')}")
         hw.JET.off()
-        _send_can(0x02, 0)
+        _send_can(0x02, 0, force=True)
 
     # ===== BRUSH SPRAY =====
     def spray_on(self):
@@ -591,7 +607,7 @@ class Machine:
     def spray_off(self):
         # print(f"SPRAY OFF{relay_log('BRUSH_SPRAY')}")
         hw.BRUSH_SPRAY.off()
-        _send_can(0x03, 0)
+        _send_can(0x03, 0, force=True)
 
     # ===== VACUUM SYSTEM (independent of sweeping) =====
     def vacuum_on(self):
@@ -793,14 +809,14 @@ class Machine:
         global _rear_down_state
         # print(f"BRUSH DOWN OFF (Rear){relay_log('REAR_DOWN')}")
         hw.REAR_DOWN.off()
-        _send_can(0x0D, 0)
+        _send_can(0x0D, 0, force=True)
         _rear_down_state = False
 
     def rear_brush_up_off(self):
         global _rear_up_state
         # print(f"BRUSH UP OFF (Rear){relay_log('REAR_UP')}")
         hw.REAR_UP.off()
-        _send_can(0x0C, 0)
+        _send_can(0x0C, 0, force=True)
         _rear_up_state = False
 
     # ===== LEFT EXTRACT / RETRACT — opposite OFF print first, then ON =====

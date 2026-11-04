@@ -67,3 +67,17 @@ export function useReportsRuntime() {
     },
   });
 }
+
+export function useCameraVideos(machineId) {
+  return useQuery({
+    queryKey: ['hmi32', 'camera-videos', machineId || 'all'],
+    queryFn: async () => {
+      const q = machineId
+        ? `?machineId=${encodeURIComponent(machineId)}&limit=100`
+        : '?limit=100';
+      const data = await fetchApi(`/api/camera-videos${q}`);
+      return Array.isArray(data.data) ? data.data : [];
+    },
+    refetchInterval: 3000,
+  });
+}

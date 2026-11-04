@@ -39,14 +39,14 @@ def _gps_serial_port():
         return env
     if os.name == "nt":
         return ""
-    return "/dev/serial0"
+    return "/dev/ttyUSB1"
 
 
 def _gps_baud():
     try:
-        return int(os.environ.get("GPS_BAUD", "38400"))
+        return int(os.environ.get("GPS_BAUD", "115200"))
     except ValueError:
-        return 38400
+        return 115200
 
 
 def _is_position_sentence(line):
@@ -54,6 +54,26 @@ def _is_position_sentence(line):
 
 
 def get_gps_data():
+    try:
+        from logic.gps_tracker import get_cached_fix, start_gps_tracker
+
+        start_gps_tracker()
+        cached = get_cached_fix()
+        if cached and cached.get("latitude") is not None and cached.get("longitude") is not None:
+            return {
+                "latitude": cached["latitude"],
+                "longitude": cached["longitude"],
+                "timestamp": cached.get("timestamp")
+                or datetime.utcnow().isoformat() + "Z",
+                "speed_kmh": cached.get("speed_kmh"),
+                "altitude": cached.get("altitude"),
+                "satellites": cached.get("satellites"),
+                "course": cached.get("course"),
+                "fix_valid": cached.get("fix_valid"),
+            }
+    except Exception:
+        pass
+
     if serial is None or pynmea2 is None:
         _gps_print_terminal("no_deps", "GPS: install pyserial and pynmea2")
         return None

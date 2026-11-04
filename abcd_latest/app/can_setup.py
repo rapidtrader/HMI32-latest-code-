@@ -13,9 +13,24 @@ def setup_can_bus() -> None:
         start_can_monitor()
         return
 
+    # restart-ms: auto-recover from bus-off / error-passive after wiring glitches
     steps = [
         ["sudo", "ip", "link", "set", "can0", "down"],
-        ["sudo", "ip", "link", "set", "can0", "type", "can", "bitrate", "125000"],
+        [
+            "sudo",
+            "ip",
+            "link",
+            "set",
+            "can0",
+            "type",
+            "can",
+            "bitrate",
+            "125000",
+            "restart-ms",
+            "100",
+            "loopback",
+            "off",
+        ],
         ["sudo", "ip", "link", "set", "can0", "up"],
     ]
     for cmd in steps:
