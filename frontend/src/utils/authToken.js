@@ -20,16 +20,26 @@ export function clearStoredAuth() {
   }
 }
 
-/** Returns true if JWT is missing, malformed, or past exp. */
-export function isAuthTokenExpired(token) {
-  if (!token || typeof token !== 'string') return true;
+function decodeJwtPayload(token) {
+  if (!token || typeof token !== 'string') return null;
   const parts = token.split('.');
-  if (parts.length !== 3) return true;
+  if (parts.length !== 3) return null;
   try {
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-    if (!payload.exp) return false;
-    return Date.now() >= payload.exp * 1000;
+    let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64.length % 4;
+    if (pad) b64 += '='.repeat(4 - pad);
+    return JSON.parse(atob(b64));
   } catch {
-    return true;
+    return null;
   }
+}
+
+/**
+ * true = definitely expired
+ * false = still valid OR unknown (do not force logout on parse failure)
+ */
+export function isAuthTokenExpired(token) {
+  const payload = decodeJwtPayload(token);
+  if (!payload || payload.exp == null) return false;
+  return Date.now() >= Number(payload.exp) * 1000;
 }

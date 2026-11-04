@@ -18,12 +18,6 @@ export const useAuth = () => {
   return context;
 };
 
-const applyStoredSession = (storedToken, storedUsername) => ({
-  token: storedToken,
-  username: storedUsername,
-  isAuthenticated: true,
-});
-
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState('');
@@ -38,24 +32,29 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+
     const verifyStoredSession = async () => {
       const { token: storedToken, username: storedUsername } = readStoredAuth();
 
       if (!storedToken) {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
         return;
       }
 
+      // Only clear when JWT is clearly past exp (padding-safe decode).
       if (isAuthTokenExpired(storedToken)) {
         logout();
-        setLoading(false);
+        if (!cancelled) setLoading(false);
         return;
       }
 
-      const session = applyStoredSession(storedToken, storedUsername);
-      setToken(session.token);
-      setUsername(session.username);
-      setIsAuthenticated(true);
+      // Keep user logged in through refresh immediately.
+      if (!cancelled) {
+        setToken(storedToken);
+        setUsername(storedUsername);
+        setIsAuthenticated(true);
+      }
 
       try {
         const response = await fetch(apiUrl('/api/auth/me'), {
@@ -63,6 +62,9 @@ export const AuthProvider = ({ children }) => {
         });
         const data = await response.json().catch(() => ({}));
 
+        if (cancelled) return;
+
+        // Only hard logout when server rejects the token.
         if (response.status === 401 || response.status === 403) {
           logout();
           return;
@@ -72,13 +74,16 @@ export const AuthProvider = ({ children }) => {
           setUsername(data.user?.username || storedUsername || '');
         }
       } catch {
-        // Keep session on network errors — refresh must not log out if API is briefly unreachable.
+        // Network blip: keep local session.
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     verifyStoredSession();
+    return () => {
+      cancelled = true;
+    };
   }, [logout]);
 
   const login = (authToken, user = '') => {
