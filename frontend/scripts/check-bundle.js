@@ -1,0 +1,10 @@
+const fs = require('fs');
+const path = process.env.TEMP + '/hmi-new.js';
+const s = fs.readFileSync(path, 'utf8');
+console.log('has /app/monitor', s.includes('/app/monitor'));
+console.log('has /auth/login', s.includes('/auth/login'));
+console.log('pad fix', s.includes('repeat(4'));
+const i = s.indexOf('/api/auth/me');
+console.log(s.slice(i - 220, i + 320));
+const httpsMatches = [...s.matchAll(/https:\/\/hmi\.dynacleanindustries\.com/g)];
+console.log('dynaclean count', httpsMatches.length);

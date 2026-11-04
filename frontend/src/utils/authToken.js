@@ -1,23 +1,55 @@
 export const AUTH_TOKEN_KEY = 'hmi32_authToken';
 export const AUTH_USERNAME_KEY = 'hmi32_username';
 
-export function readStoredAuth() {
+function storageGet(key) {
   try {
-    const token = localStorage.getItem(AUTH_TOKEN_KEY) || '';
-    const username = localStorage.getItem(AUTH_USERNAME_KEY) || '';
-    return { token, username };
+    return localStorage.getItem(key) || sessionStorage.getItem(key) || '';
   } catch {
-    return { token: '', username: '' };
+    return '';
   }
 }
 
-export function clearStoredAuth() {
+function storageSet(key, value) {
   try {
-    localStorage.removeItem(AUTH_TOKEN_KEY);
-    localStorage.removeItem(AUTH_USERNAME_KEY);
+    localStorage.setItem(key, value);
   } catch {
     /* ignore */
   }
+  try {
+    sessionStorage.setItem(key, value);
+  } catch {
+    /* ignore */
+  }
+}
+
+function storageRemove(key) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.removeItem(key);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function readStoredAuth() {
+  return {
+    token: storageGet(AUTH_TOKEN_KEY),
+    username: storageGet(AUTH_USERNAME_KEY),
+  };
+}
+
+export function writeStoredAuth(token, username = '') {
+  storageSet(AUTH_TOKEN_KEY, token || '');
+  storageSet(AUTH_USERNAME_KEY, username || '');
+}
+
+export function clearStoredAuth() {
+  storageRemove(AUTH_TOKEN_KEY);
+  storageRemove(AUTH_USERNAME_KEY);
 }
 
 function decodeJwtPayload(token) {
@@ -34,12 +66,15 @@ function decodeJwtPayload(token) {
   }
 }
 
-/**
- * true = definitely expired
- * false = still valid OR unknown (do not force logout on parse failure)
- */
+/** true only when exp is present and clearly in the past */
 export function isAuthTokenExpired(token) {
   const payload = decodeJwtPayload(token);
   if (!payload || payload.exp == null) return false;
-  return Date.now() >= Number(payload.exp) * 1000;
+  // 30s clock skew tolerance
+  return Date.now() >= Number(payload.exp) * 1000 + 30_000;
+}
+
+export function hasUsableStoredSession() {
+  const { token } = readStoredAuth();
+  return Boolean(token) && !isAuthTokenExpired(token);
 }

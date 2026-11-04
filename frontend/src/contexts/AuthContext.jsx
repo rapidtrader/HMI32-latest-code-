@@ -1,11 +1,11 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { apiUrl } from '../api/client';
 import {
-  AUTH_TOKEN_KEY,
-  AUTH_USERNAME_KEY,
   readStoredAuth,
+  writeStoredAuth,
   clearStoredAuth,
   isAuthTokenExpired,
+  hasUsableStoredSession,
 } from '../utils/authToken';
 
 const AuthContext = createContext();
@@ -18,11 +18,22 @@ export const useAuth = () => {
   return context;
 };
 
+function readInitialSession() {
+  const { token, username } = readStoredAuth();
+  if (!token || isAuthTokenExpired(token)) {
+    if (token) clearStoredAuth();
+    return { token: '', username: '', isAuthenticated: false };
+  }
+  return { token, username, isAuthenticated: true };
+}
+
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [token, setToken] = useState('');
-  const [username, setUsername] = useState('');
-  const [loading, setLoading] = useState(true);
+  // Sync restore — first paint already knows login state (no refresh → login flash).
+  const [session] = useState(readInitialSession);
+  const [isAuthenticated, setIsAuthenticated] = useState(session.isAuthenticated);
+  const [token, setToken] = useState(session.token);
+  const [username, setUsername] = useState(session.username);
+  const [loading] = useState(false);
 
   const logout = useCallback(() => {
     clearStoredAuth();
@@ -34,22 +45,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let cancelled = false;
 
-    const verifyStoredSession = async () => {
+    const softVerify = async () => {
+      if (!hasUsableStoredSession()) {
+        return;
+      }
+
       const { token: storedToken, username: storedUsername } = readStoredAuth();
-
-      if (!storedToken) {
-        if (!cancelled) setLoading(false);
-        return;
-      }
-
-      // Only clear when JWT is clearly past exp (padding-safe decode).
-      if (isAuthTokenExpired(storedToken)) {
-        logout();
-        if (!cancelled) setLoading(false);
-        return;
-      }
-
-      // Keep user logged in through refresh immediately.
       if (!cancelled) {
         setToken(storedToken);
         setUsername(storedUsername);
@@ -61,47 +62,46 @@ export const AuthProvider = ({ children }) => {
           headers: { Authorization: `Bearer ${storedToken}` },
         });
         const data = await response.json().catch(() => ({}));
-
         if (cancelled) return;
 
-        // Only hard logout when server rejects the token.
-        if (response.status === 401 || response.status === 403) {
-          logout();
+        if (response.ok && data.success) {
+          const name = data.user?.username || storedUsername || '';
+          setUsername(name);
+          writeStoredAuth(storedToken, name);
           return;
         }
 
-        if (response.ok && data.success) {
-          setUsername(data.user?.username || storedUsername || '');
-        }
+        // Do NOT logout on 401/network — refresh must keep /app/* session.
+        // Token stays until client expiry or explicit logout.
       } catch {
-        // Network blip: keep local session.
-      } finally {
-        if (!cancelled) setLoading(false);
+        /* keep session */
       }
     };
 
-    verifyStoredSession();
+    softVerify();
     return () => {
       cancelled = true;
     };
-  }, [logout]);
+  }, []);
 
-  const login = (authToken, user = '') => {
-    localStorage.setItem(AUTH_TOKEN_KEY, authToken);
-    localStorage.setItem(AUTH_USERNAME_KEY, user);
+  const login = useCallback((authToken, user = '') => {
+    writeStoredAuth(authToken, user);
     setToken(authToken);
     setUsername(user);
     setIsAuthenticated(true);
-  };
+  }, []);
 
-  const value = {
-    isAuthenticated,
-    token,
-    username,
-    loading,
-    login,
-    logout,
-  };
+  const value = useMemo(
+    () => ({
+      isAuthenticated,
+      token,
+      username,
+      loading,
+      login,
+      logout,
+    }),
+    [isAuthenticated, token, username, loading, login, logout]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

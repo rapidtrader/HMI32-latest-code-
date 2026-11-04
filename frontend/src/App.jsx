@@ -17,22 +17,11 @@ import {
 } from './routes/paths';
 
 const App = () => {
-  const { isAuthenticated, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="hmi32-spinner" />
-          <p className="text-gray-600 mt-4">Loading...</p>
-        </div>
-      </div>
-    );
-  }
+  const { isAuthenticated } = useAuth();
 
   return (
     <Routes>
-      {/* —— Public auth (no app shell) —— */}
+      {/* Public auth — /auth/login, /auth/signup */}
       <Route
         path={AUTH_ROUTES.ROOT}
         element={
@@ -46,7 +35,7 @@ const App = () => {
         <Route path="signup" element={<SignUpPage />} />
       </Route>
 
-      {/* —— Protected app (sidebar + pages) —— */}
+      {/* Protected app — /app/* */}
       <Route
         path={APP_ROUTES.ROOT}
         element={
@@ -62,12 +51,10 @@ const App = () => {
         <Route path="camera-videos" element={<CameraVideosPage />} />
       </Route>
 
-      {/* —— Old URLs keep working —— */}
       {LEGACY_REDIRECTS.map(({ from, to }) => (
         <Route key={from} path={from} element={<Navigate to={to} replace />} />
       ))}
 
-      {/* —— Entry / unknown —— */}
       <Route
         path="/"
         element={
