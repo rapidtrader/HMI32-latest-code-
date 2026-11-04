@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { apiUrl } from '../api/client';
-import { ROUTES } from '../routes/paths';
+import { ROUTES, isAppPath, defaultAuthedPath } from '../routes/paths';
 
 const REMEMBER_KEY = 'hmi32_remember_login';
 const LEGACY_USERNAME_KEY = 'hmi32_remember_username';
@@ -123,7 +123,8 @@ const LoginForm = ({ allowSignup = false, onSwitchToSignUp }) => {
         clearRememberedLogin();
       }
       login(data.token, data.user?.username || formData.username);
-      const redirectTo = location.state?.from?.pathname || ROUTES.MONITOR;
+      const from = location.state?.from?.pathname;
+      const redirectTo = isAppPath(from) ? from : defaultAuthedPath();
       navigate(redirectTo, { replace: true });
     },
     onError: (err) => {

@@ -1,7 +1,8 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { ROUTES } from '../routes/paths';
+import { AUTH_ROUTES } from '../routes/paths';
 
+/** App pages only — guests go to /auth/login */
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
@@ -18,7 +19,13 @@ const ProtectedRoute = ({ children }) => {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to={ROUTES.LOGIN} replace state={{ from: location }} />;
+    return (
+      <Navigate
+        to={AUTH_ROUTES.LOGIN}
+        replace
+        state={{ from: location }}
+      />
+    );
   }
 
   return children;

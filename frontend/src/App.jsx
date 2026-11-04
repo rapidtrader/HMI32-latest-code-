@@ -1,13 +1,20 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './contexts/AuthContext';
-import AuthScreen from './components/AuthScreen';
+import AuthLayout from './components/AuthLayout';
 import AppLayout from './components/AppLayout';
+import GuestRoute from './components/GuestRoute';
 import ProtectedRoute from './components/ProtectedRoute';
+import { LoginPage, SignUpPage } from './components/AuthScreen';
 import Hmi32Monitor from './components/Hmi32Monitor';
 import MachineInfoPage from './components/MachineInfoPage';
 import ReportsPage from './components/ReportsPage';
 import CameraVideosPage from './components/CameraVideosPage';
-import { ROUTES } from './routes/paths';
+import {
+  AUTH_ROUTES,
+  APP_ROUTES,
+  LEGACY_REDIRECTS,
+  defaultAuthedPath,
+} from './routes/paths';
 
 const App = () => {
   const { isAuthenticated, loading } = useAuth();
@@ -25,13 +32,23 @@ const App = () => {
 
   return (
     <Routes>
+      {/* —— Public auth (no app shell) —— */}
       <Route
-        path={ROUTES.LOGIN}
-        element={isAuthenticated ? <Navigate to={ROUTES.MONITOR} replace /> : <AuthScreen />}
-      />
+        path={AUTH_ROUTES.ROOT}
+        element={
+          <GuestRoute>
+            <AuthLayout />
+          </GuestRoute>
+        }
+      >
+        <Route index element={<Navigate to={AUTH_ROUTES.LOGIN} replace />} />
+        <Route path="login" element={<LoginPage />} />
+        <Route path="signup" element={<SignUpPage />} />
+      </Route>
 
+      {/* —— Protected app (sidebar + pages) —— */}
       <Route
-        path="/"
+        path={APP_ROUTES.ROOT}
         element={
           <ProtectedRoute>
             <AppLayout />
@@ -45,7 +62,30 @@ const App = () => {
         <Route path="camera-videos" element={<CameraVideosPage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to={isAuthenticated ? ROUTES.MONITOR : ROUTES.LOGIN} replace />} />
+      {/* —— Old URLs keep working —— */}
+      {LEGACY_REDIRECTS.map(({ from, to }) => (
+        <Route key={from} path={from} element={<Navigate to={to} replace />} />
+      ))}
+
+      {/* —— Entry / unknown —— */}
+      <Route
+        path="/"
+        element={
+          <Navigate
+            to={isAuthenticated ? defaultAuthedPath() : AUTH_ROUTES.LOGIN}
+            replace
+          />
+        }
+      />
+      <Route
+        path="*"
+        element={
+          <Navigate
+            to={isAuthenticated ? defaultAuthedPath() : AUTH_ROUTES.LOGIN}
+            replace
+          />
+        }
+      />
     </Routes>
   );
 };
