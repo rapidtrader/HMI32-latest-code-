@@ -1,5 +1,7 @@
 const express = require('express');
 const http = require('http');
+const path = require('path');
+const fs = require('fs');
 const cors = require('cors');
 const { Server: SocketIOServer } = require('socket.io');
 require('dotenv').config();
@@ -572,6 +574,31 @@ app.get('/api/hmi32/reports/runtime', async (req, res) => {
     });
   }
 });
+
+const FRONTEND_DIST = path.resolve(__dirname, '../../frontend/dist');
+
+const installSpaFallback = () => {
+  if (!fs.existsSync(FRONTEND_DIST)) {
+    return;
+  }
+  app.use(
+    express.static(FRONTEND_DIST, {
+      index: false,
+      maxAge: process.env.NODE_ENV === 'production' ? '1h' : 0,
+    })
+  );
+  app.get(/^(?!\/api\/)(?!\/socket\.io).*/, (req, res, next) => {
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
+      return next();
+    }
+    res.sendFile(path.join(FRONTEND_DIST, 'index.html'), (err) => {
+      if (err) next(err);
+    });
+  });
+  console.log(`[static] Serving SPA from ${FRONTEND_DIST}`);
+};
+
+installSpaFallback();
 
 const startServer = async () => {
   try {

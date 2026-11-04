@@ -1,5 +1,12 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { apiUrl } from '../api/client';
+import {
+  AUTH_TOKEN_KEY,
+  AUTH_USERNAME_KEY,
+  readStoredAuth,
+  clearStoredAuth,
+  isAuthTokenExpired,
+} from '../utils/authToken';
 
 const AuthContext = createContext();
 
@@ -11,21 +18,44 @@ export const useAuth = () => {
   return context;
 };
 
+const applyStoredSession = (storedToken, storedUsername) => ({
+  token: storedToken,
+  username: storedUsername,
+  isAuthenticated: true,
+});
+
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [token, setToken] = useState('');
   const [username, setUsername] = useState('');
   const [loading, setLoading] = useState(true);
 
+  const logout = useCallback(() => {
+    clearStoredAuth();
+    setToken('');
+    setUsername('');
+    setIsAuthenticated(false);
+  }, []);
+
   useEffect(() => {
     const verifyStoredSession = async () => {
-      const storedToken = localStorage.getItem('hmi32_authToken');
-      const storedUsername = localStorage.getItem('hmi32_username');
+      const { token: storedToken, username: storedUsername } = readStoredAuth();
 
       if (!storedToken) {
         setLoading(false);
         return;
       }
+
+      if (isAuthTokenExpired(storedToken)) {
+        logout();
+        setLoading(false);
+        return;
+      }
+
+      const session = applyStoredSession(storedToken, storedUsername);
+      setToken(session.token);
+      setUsername(session.username);
+      setIsAuthenticated(true);
 
       try {
         const response = await fetch(apiUrl('/api/auth/me'), {
@@ -33,39 +63,30 @@ export const AuthProvider = ({ children }) => {
         });
         const data = await response.json().catch(() => ({}));
 
+        if (response.status === 401 || response.status === 403) {
+          logout();
+          return;
+        }
+
         if (response.ok && data.success) {
-          setToken(storedToken);
           setUsername(data.user?.username || storedUsername || '');
-          setIsAuthenticated(true);
-        } else {
-          localStorage.removeItem('hmi32_authToken');
-          localStorage.removeItem('hmi32_username');
         }
       } catch {
-        localStorage.removeItem('hmi32_authToken');
-        localStorage.removeItem('hmi32_username');
+        // Keep session on network errors — refresh must not log out if API is briefly unreachable.
       } finally {
         setLoading(false);
       }
     };
 
     verifyStoredSession();
-  }, []);
+  }, [logout]);
 
   const login = (authToken, user = '') => {
-    localStorage.setItem('hmi32_authToken', authToken);
-    localStorage.setItem('hmi32_username', user);
+    localStorage.setItem(AUTH_TOKEN_KEY, authToken);
+    localStorage.setItem(AUTH_USERNAME_KEY, user);
     setToken(authToken);
     setUsername(user);
     setIsAuthenticated(true);
-  };
-
-  const logout = () => {
-    localStorage.removeItem('hmi32_authToken');
-    localStorage.removeItem('hmi32_username');
-    setToken('');
-    setUsername('');
-    setIsAuthenticated(false);
   };
 
   const value = {

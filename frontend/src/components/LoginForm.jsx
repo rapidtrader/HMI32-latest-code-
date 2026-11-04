@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { apiUrl } from '../api/client';
@@ -85,6 +85,7 @@ const EyeOffIcon = () => (
 const LoginForm = ({ allowSignup = false, onSwitchToSignUp }) => {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [rememberMe, setRememberMe] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -122,7 +123,8 @@ const LoginForm = ({ allowSignup = false, onSwitchToSignUp }) => {
         clearRememberedLogin();
       }
       login(data.token, data.user?.username || formData.username);
-      navigate(ROUTES.MONITOR, { replace: true });
+      const redirectTo = location.state?.from?.pathname || ROUTES.MONITOR;
+      navigate(redirectTo, { replace: true });
     },
     onError: (err) => {
       setError(err.message || 'Network error. Please try again.');
