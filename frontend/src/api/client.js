@@ -17,13 +17,26 @@ export function getApiBaseLabel() {
   return typeof window !== 'undefined' ? window.location.origin : '(relative)';
 }
 
-/** Pi HMI backend.json — LAN IP of the PC running Node (from VITE_PI_BACKEND_URL). */
+/** Pi HMI backend.json — same host as this site, or LAN PC :4002 (VITE_PI_BACKEND_URL). */
 export function getPiBackendUrlHint() {
   const hint =
     typeof import.meta !== 'undefined' && import.meta.env?.VITE_PI_BACKEND_URL
       ? String(import.meta.env.VITE_PI_BACKEND_URL).replace(/\/$/, '')
       : '';
   return hint;
+}
+
+/** True when Pi should point at a dev PC on port 4002 (firewall / no 127.0.0.1), not production HTTPS. */
+export function isLocalPiBackendHint(hint = getPiBackendUrlHint()) {
+  if (!hint) return false;
+  try {
+    const u = new URL(hint);
+    if (u.port === '4002') return true;
+    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') return true;
+    return false;
+  } catch {
+    return hint.includes(':4002');
+  }
 }
 
 export async function checkCameraVideosApi() {

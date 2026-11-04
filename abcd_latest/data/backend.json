@@ -1,6 +1,0 @@
-{
-  "backendBaseUrl": "https://hmi.dynacleanindustries.com",
-  "canRequireResponse": true,
-  "cameraAutoSave": true,
-  "_note": "Production API + MongoDB. Pi clips → POST /api/camera-videos. Server must run latest backend (camera-videos routes)."
-}

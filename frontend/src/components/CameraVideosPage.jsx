@@ -1,6 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { apiUrl, deleteCameraVideo, getApiBaseLabel, getPiBackendUrlHint, checkCameraVideosApi } from '../api/client';
+import {
+  apiUrl,
+  deleteCameraVideo,
+  getApiBaseLabel,
+  getPiBackendUrlHint,
+  isLocalPiBackendHint,
+  checkCameraVideosApi,
+} from '../api/client';
 import { useCameraVideos } from '../hooks/useHmi32Queries';
 import PageLayout from './PageLayout';
 
@@ -48,6 +55,7 @@ const CameraVideosPage = () => {
 
   const machineOptions = [...new Set(videos.map((v) => v.machineId).filter(Boolean))];
   const piBackend = getPiBackendUrlHint();
+  const piLocalDev = isLocalPiBackendHint(piBackend);
 
   return (
     <PageLayout
@@ -90,8 +98,21 @@ const CameraVideosPage = () => {
                 {`// abcd_latest/data/backend.json\n{\n  "backendBaseUrl": "${piBackend}",\n  "canRequireResponse": true\n}`}
               </pre>
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: '#374151' }}>
-                Pi <code>127.0.0.1</code> use nahi kar sakta — woh Pi khud hai, aapka PC nahi. Save karke HMI
-                restart → Cameras → Start all. PC par Windows Firewall port <strong>4002</strong> allow karo.
+                Pi par <code>127.0.0.1</code> mat likho — woh Pi khud hai, PC nahi. File save karke HMI restart →
+                Cameras → Start all.
+                {piLocalDev ? (
+                  <>
+                    {' '}
+                    PC par Node <strong>:4002</strong> chal raha ho to Windows Firewall port <strong>4002</strong>{' '}
+                    allow karo.
+                  </>
+                ) : (
+                  <>
+                    {' '}
+                    Clips ke liye stable live view ke baad <code>cameraAutoSave: true</code> ya{' '}
+                    <code>CAMERA_AUTO_SAVE=1</code> (optional).
+                  </>
+                )}
               </p>
             </div>
           )}
