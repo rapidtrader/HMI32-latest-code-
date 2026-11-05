@@ -9,9 +9,9 @@ URL="${URL%/}"
 mkdir -p "$ROOT/data"
 printf '%s\n' "{
   \"backendBaseUrl\": \"$URL\",
-  \"canRequireResponse\": true
+  \"canRequireResponse\": true,
+  \"cameraAutoSave\": true
 }" > "$CFG"
 echo "Wrote $CFG → $URL"
 echo "Test: curl -sS \"$URL/api/health\""
-echo "Clips: curl -sS \"$URL/api/camera-videos?limit=1\"  (404 = deploy latest backend on server)"
-echo "Optional: add \"cameraAutoSave\": true for website clips after live view is stable"
+echo "Clips: curl -sS \"$URL/api/camera-videos?limit=5\"  (all channels continuous)"

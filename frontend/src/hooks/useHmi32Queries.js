@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchApi } from '../api/client';
+import { dedupeCameraVideosForDisplay } from '../utils/cameraVideoSlots';
 
 export function useHmi32Latest() {
   return useQuery({
@@ -73,10 +74,11 @@ export function useCameraVideos(machineId) {
     queryKey: ['hmi32', 'camera-videos', machineId || 'all'],
     queryFn: async () => {
       const q = machineId
-        ? `?machineId=${encodeURIComponent(machineId)}&limit=100`
-        : '?limit=100';
+        ? `?machineId=${encodeURIComponent(machineId)}&limit=200`
+        : '?limit=200';
       const data = await fetchApi(`/api/camera-videos${q}`);
-      return Array.isArray(data.data) ? data.data : [];
+      const raw = Array.isArray(data.data) ? data.data : [];
+      return dedupeCameraVideosForDisplay(raw);
     },
     refetchInterval: 3000,
   });

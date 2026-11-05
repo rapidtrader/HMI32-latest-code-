@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   apiUrl,
+  compactCameraVideos,
   deleteCameraVideo,
   getApiBaseLabel,
   getPiBackendUrlHint,
@@ -9,6 +10,7 @@ import {
   checkCameraVideosApi,
 } from '../api/client';
 import { useCameraVideos } from '../hooks/useHmi32Queries';
+import { channelSortKey, inferCameraChannel } from '../utils/cameraVideoSlots';
 import PageLayout from './PageLayout';
 
 const fmtBytes = (n) => {
@@ -27,21 +29,58 @@ const fmtDate = (d) => {
   }
 };
 
+const fmtDuration = (sec) => {
+  const s = Math.round(Number(sec) || 0);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r ? `${m}m ${r}s` : `${m}m`;
+};
+
+const displayTitle = (v) => {
+  const ch = inferCameraChannel(v);
+  if (ch) return ch;
+  return v?.title || v?.filename || 'Camera';
+};
+
 const CameraVideosPage = () => {
   const queryClient = useQueryClient();
   const [filterMachine, setFilterMachine] = useState('');
   const queryMachine = filterMachine.trim() || undefined;
-  const { data: videos = [], isLoading, error, isFetching } = useCameraVideos(queryMachine);
+  const { data: videosRaw = [], isLoading, error, isFetching } = useCameraVideos(queryMachine);
+  const videos = [...videosRaw].sort((a, b) => channelSortKey(a) - channelSortKey(b));
   const [uploadError, setUploadError] = useState('');
+  const [mergeHint, setMergeHint] = useState('');
   const [apiCheck, setApiCheck] = useState(null);
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['hmi32', 'camera-videos'] });
+  };
 
   useEffect(() => {
     checkCameraVideosApi().then(setApiCheck);
   }, []);
 
-  const refresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['hmi32', 'camera-videos'] });
-  };
+  useEffect(() => {
+    let cancelled = false;
+    setMergeHint('Merging old segments into one recording per channel…');
+    compactCameraVideos(queryMachine, { force: true })
+      .then(() => {
+        if (!cancelled) {
+          setMergeHint('');
+          queryClient.invalidateQueries({ queryKey: ['hmi32', 'camera-videos'] });
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) {
+          setMergeHint('');
+          setUploadError(e.message || 'Could not merge old clips on server');
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [queryMachine, queryClient]);
 
   const onDelete = async (id) => {
     if (!window.confirm('Delete this video from database?')) return;
@@ -60,13 +99,14 @@ const CameraVideosPage = () => {
   return (
     <PageLayout
       title="Camera Videos"
-      subtitle="From server database — Pi auto-records when cameras are ON; list refreshes every 3s"
+      subtitle="One growing file per camera — old ~10s segments are merged on the server (needs ffmpeg + latest backend)"
       loading={isLoading}
       loadingText="Loading videos..."
       error={error}
       onRefresh={refresh}
     >
       {uploadError && <div className="hmi32-alert">{uploadError}</div>}
+      {mergeHint && <div className="hmi32-alert">{mergeHint}</div>}
 
       <div className="hmi32-card" style={{ marginBottom: '1rem' }}>
         <div className="hmi32-card__head">
@@ -149,7 +189,7 @@ const CameraVideosPage = () => {
             <svg className="hmi32-card__head-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M4 6h16M4 10h16M4 14h16M4 18h16" strokeLinecap="round" />
             </svg>
-            <h2>Saved videos ({videos.length})</h2>
+            <h2>Live camera slots ({videos.length})</h2>
           </div>
           <select
             className="hmi32-select"
@@ -171,29 +211,39 @@ const CameraVideosPage = () => {
           </p>
         ) : (
           <div className="hmi32-video-grid">
-            {videos.map((v) => (
+            {videos.map((v) => {
+              const playable = (Number(v.sizeBytes) || 0) >= 500;
+              return (
               <article key={v.id} className="hmi32-video-item">
+                {playable ? (
                 <video
+                  key={`${v.id}-${v.updated_at || v.created_at}-${v.sizeBytes || 0}`}
                   className="hmi32-video-item__player"
                   controls
                   preload="metadata"
-                  src={apiUrl(`/api/camera-videos/${v.id}/stream`)}
+                  src={apiUrl(
+                    `/api/camera-videos/${v.id}/stream?t=${encodeURIComponent(v.updated_at || v.created_at || '')}`
+                  )}
                 />
+                ) : (
+                  <div className="hmi32-video-item__player hmi32-video-empty" style={{ minHeight: 120 }}>
+                    No frames yet — start this camera on Pi preview
+                  </div>
+                )}
                 <div className="hmi32-video-item__meta">
-                  <p className="hmi32-video-item__title">{v.title || v.filename}</p>
+                  <p className="hmi32-video-item__title">{displayTitle(v)}</p>
+                  <p className="hmi32-video-item__sub">{v.machineId}</p>
                   <p className="hmi32-video-item__sub">
-                    {v.machineId}
-                    {v.cameraChannel ? ` · ${v.cameraChannel}` : ''}
-                  </p>
-                  <p className="hmi32-video-item__sub">
-                    {fmtDate(v.created_at)} · {fmtBytes(v.sizeBytes)}
+                    Updated {fmtDate(v.updated_at || v.created_at)} · {fmtBytes(v.sizeBytes)}
+                    {v.durationSec ? ` · growing ${fmtDuration(v.durationSec)}` : ''}
                   </p>
                   <button type="button" className="hmi32-video-item__delete" onClick={() => onDelete(v.id)}>
                     Delete
                   </button>
                 </div>
               </article>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

@@ -122,6 +122,12 @@ class GStreamerVideoItem(QQuickPaintedItem):
                 f"[CAMERA] cam{camera_id} first frame "
                 f"{image.width()}x{image.height()}"
             )
+        try:
+            from app.gstreamer_preview_registry import feed_clip_frame
+
+            feed_clip_frame(camera_id, image)
+        except Exception as exc:
+            print(f"[CAMERA-VIDEO] feed_clip_frame CH{camera_id}: {exc}")
         if not self._ui_timer.isActive():
             self._ui_timer.start()
 

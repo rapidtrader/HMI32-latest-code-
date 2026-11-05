@@ -55,6 +55,19 @@ export async function checkCameraVideosApi() {
   }
 }
 
+export async function compactCameraVideos(machineId, { force = false } = {}) {
+  const q = new URLSearchParams();
+  if (machineId) q.set('machineId', machineId);
+  if (force) q.set('force', '1');
+  const suffix = q.toString() ? `?${q.toString()}` : '';
+  const res = await fetch(apiUrl(`/api/camera-videos/compact${suffix}`), { method: 'POST' });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data.success === false) {
+    throw new Error(data.message || 'Merge failed (deploy latest backend + ffmpeg on server)');
+  }
+  return data;
+}
+
 export async function fetchApi(path) {
   const res = await fetch(apiUrl(path));
   const data = await res.json().catch(() => ({}));

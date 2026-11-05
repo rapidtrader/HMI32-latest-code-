@@ -65,36 +65,55 @@ def _auto_save_interval_ms() -> int:
 
 def _auto_save_start_delay_ms() -> int:
     try:
-        sec = float(os.environ.get("CAMERA_AUTO_SAVE_START_DELAY_SEC", "90"))
-        return max(30_000, int(sec * 1000))
+        sec = float(os.environ.get("CAMERA_AUTO_SAVE_START_DELAY_SEC", "15"))
+        return max(5_000, int(sec * 1000))
     except ValueError:
-        return 90_000
+        return 15_000
 
 
 def _auto_save_min_live_sec() -> float:
     try:
-        return max(60.0, float(os.environ.get("CAMERA_AUTO_SAVE_MIN_LIVE_SEC", "120")))
+        return max(3.0, float(os.environ.get("CAMERA_AUTO_SAVE_MIN_LIVE_SEC", "8")))
     except ValueError:
-        return 120.0
+        return 8.0
 
 
 def _auto_save_gap_ms() -> int:
+    """Pause between parallel batch cycles (not between channels)."""
     try:
-        sec = float(os.environ.get("CAMERA_AUTO_SAVE_GAP_SEC", "45"))
-        return max(10_000, int(sec * 1000))
+        sec = float(os.environ.get("CAMERA_AUTO_SAVE_GAP_SEC", "30"))
+        return max(5_000, int(sec * 1000))
     except ValueError:
-        return 45_000
+        return 30_000
+
+
+def _auto_save_continuous() -> bool:
+    return os.environ.get("CAMERA_AUTO_SAVE_CONTINUOUS", "1").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
 
 def _auto_save_clip_sec() -> float:
     try:
-        return max(8.0, float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "20")))
+        return max(5.0, float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "12")))
     except ValueError:
-        return 20.0
+        return 12.0
 
 
 def _auto_save_rotate_channels() -> bool:
     return os.environ.get("CAMERA_AUTO_SAVE_ROTATE", "1").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
+def _auto_save_require_probe() -> bool:
+    return os.environ.get("CAMERA_AUTO_SAVE_REQUIRE_PROBE", "0").strip().lower() in (
         "1",
         "true",
         "yes",
@@ -144,6 +163,7 @@ class CameraController(QObject):
         self._auto_save_rotate = 0
         self._auto_save_loop_pending = False
         self._auto_save_worker_running = False
+        self._continuous_save_started = False
         self._live_started_at = 0.0
         self._auto_save_pause_event = threading.Event()
         self._auto_save_hold_channel = 0
@@ -445,14 +465,48 @@ class CameraController(QObject):
             self._emit("Auto-save off — set data/backend.json backendBaseUrl")
             return
         delay = _auto_save_start_delay_ms() // 1000
+        chs = self._auto_save_channel_list()
+        sec = int(_auto_save_clip_sec())
+        if _auto_save_continuous():
+            if not self._auto_save_timer.isActive():
+                self._auto_save_timer.start(_auto_save_interval_ms())
+            self._emit(
+                f"Continuous save — CH{','.join(str(c) for c in chs)} "
+                f"every {sec}s to website (live never stops, starts in {delay}s)"
+            )
+            self._schedule_auto_save_countdown(_auto_save_start_delay_ms())
+            QTimer.singleShot(_auto_save_start_delay_ms(), self._start_continuous_auto_save)
+            return
         if not self._auto_save_timer.isActive():
             self._auto_save_timer.start(_auto_save_interval_ms())
         self._emit(
-            f"Auto-save ON — first clip after {delay}s "
-            f"(all tiles pause ~20s; then JSON → website)"
+            f"Auto-save ON — all CH{','.join(str(c) for c in chs)} together "
+            f"(live preview stays on, first batch in {delay}s)"
         )
         self._schedule_auto_save_countdown(_auto_save_start_delay_ms())
-        QTimer.singleShot(_auto_save_start_delay_ms(), self._try_auto_save_clip)
+        QTimer.singleShot(_auto_save_start_delay_ms(), self._try_auto_save_batch)
+
+    def _start_continuous_auto_save(self):
+        if not self._running or not _auto_save_enabled() or self._continuous_save_started:
+            return
+        from logic.backend_clinet import get_backend_base
+        from logic.camera_auto_save import start_continuous_preview_upload
+
+        if not get_backend_base():
+            return
+        channels = self._auto_save_channel_list()
+        if not channels:
+            QTimer.singleShot(5000, self._start_continuous_auto_save)
+            return
+        ok, msg = start_continuous_preview_upload(channels)
+        if ok:
+            self._continuous_save_started = True
+            self._emit(msg)
+        else:
+            self._emit(f"Continuous save: {msg}")
+            if "ffmpeg" in msg.lower():
+                self._emit("Run on Pi: sudo apt install -y ffmpeg")
+            QTimer.singleShot(5000, self._start_continuous_auto_save)
 
     def _schedule_auto_save_countdown(self, delay_ms: int):
         for sec, label in ((30, "30s"), (10, "10s")):
@@ -470,6 +524,11 @@ class CameraController(QObject):
         self._auto_save_stop_timer.stop()
         self._auto_save_mode = False
         self._auto_save_loop_pending = False
+        if self._continuous_save_started:
+            from logic.camera_auto_save import stop_continuous_preview_upload
+
+            stop_continuous_preview_upload()
+            self._continuous_save_started = False
 
     def _schedule_next_auto_save(self):
         if not self._running or not _auto_save_enabled() or not self._inline_preview:
@@ -481,40 +540,42 @@ class CameraController(QObject):
 
     def _auto_save_loop_tick(self):
         self._auto_save_loop_pending = False
-        self._try_auto_save_clip()
+        self._try_auto_save_batch()
 
     def _auto_save_channel_list(self):
         if not _auto_save_rotate_channels():
             return [_auto_save_channel()]
+        require_probe = _auto_save_require_probe()
         out = []
         for cid in range(1, self._camera_count + 1):
-            if stream_enabled(cid) and channel_probe_ok(cid):
-                out.append(cid)
+            if not stream_enabled(cid):
+                continue
+            if require_probe and not channel_probe_ok(cid):
+                continue
+            out.append(cid)
         return out or [_auto_save_channel()]
 
-    def _pick_auto_save_channel(self) -> int:
-        chs = self._auto_save_channel_list()
-        if len(chs) == 1:
-            return chs[0]
-        idx = self._auto_save_rotate % len(chs)
-        self._auto_save_rotate += 1
-        return chs[idx]
-
     def _on_auto_save_timer(self):
+        if not self._running or not _auto_save_enabled():
+            return
+        if _auto_save_continuous():
+            if not self._continuous_save_started:
+                self._start_continuous_auto_save()
+            return
         if (
-            self._running
-            and not self._upload_busy
+            not self._upload_busy
             and not self.isRecording
-            and not self._preview_paused_channel
+            and not self._auto_save_worker_running
         ):
-            self._try_auto_save_clip()
+            self._try_auto_save_batch()
 
-    def _try_auto_save_clip(self):
+    def _try_auto_save_batch(self):
+        if _auto_save_continuous() and self._continuous_save_started:
+            return
         if (
             not self._running
             or self._upload_busy
             or self.isRecording
-            or self._preview_paused_channel
             or self._launching
         ):
             return
@@ -529,54 +590,44 @@ class CameraController(QObject):
 
         if not get_backend_base():
             return
-        channel = self._pick_auto_save_channel()
-        if not stream_enabled(channel):
+
+        channels = self._auto_save_channel_list()
+        if not channels:
             self._schedule_next_auto_save()
             return
+
         clip_sec = _auto_save_clip_sec()
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-        title = f"CH{channel} {stamp}"
         self._auto_save_worker_running = True
-        self._set_upload_busy(True)
-        print(f"[CAMERA-VIDEO] Auto-save CH{channel} ({clip_sec}s) background → server")
+
+        def title_for(ch: int) -> str:
+            return f"CH{ch} {stamp}"
 
         def worker():
             ok = False
-            msg = "Auto-save skipped (camera busy)"
+            msg = "Auto-save skipped"
             try:
-                from logic.camera_auto_save import record_and_upload_clip
+                from logic.camera_auto_save import record_all_channels_from_preview
 
-                self._auto_save_pause_event.clear()
-                self._autoSavePrepareChannel.emit(channel)
-                if not self._auto_save_pause_event.wait(timeout=20.0):
-                    msg = "Auto-save skipped (preview did not release)"
-                else:
-                    from hardware.camera_capture import resolve_video_device
-                    from hardware.v4l2_release import wait_v4l2_device_idle
-
-                    dev = resolve_video_device(channel)
-                    if not wait_v4l2_device_idle(dev, timeout=12.0):
-                        msg = f"Auto-save skipped ({dev} busy — wait longer?)"
-                    else:
-                        ok, _code, body = record_and_upload_clip(
-                            channel, clip_sec=clip_sec, title=title
-                        )
-                        if ok:
-                            msg = f"CH{channel} in JSON → server (Camera Videos)"
-                        else:
-                            msg = f"Auto-save failed: {body[:100]}"
+                ok_n, _fail_n, summary = record_all_channels_from_preview(
+                    channels,
+                    clip_sec=clip_sec,
+                    title_for_channel=title_for,
+                )
+                ok = ok_n > 0
+                msg = summary
             except Exception as exc:
                 msg = f"Auto-save error: {exc}"
                 ok = False
-            finally:
-                self._autoSaveReleasePreview.emit()
             self._autoSaveWorkerDone.emit(ok, msg)
 
-        threading.Thread(target=worker, daemon=True, name="cam-auto-save").start()
+        threading.Thread(target=worker, daemon=True, name="cam-auto-save-batch").start()
+
+    def _try_auto_save_clip(self):
+        self._try_auto_save_batch()
 
     def _on_auto_save_worker_done(self, ok: bool, message: str):
         self._auto_save_worker_running = False
-        self._set_upload_busy(False)
         if message:
             self._emit(message)
         self._schedule_next_auto_save()
@@ -584,27 +635,20 @@ class CameraController(QObject):
     def _on_auto_save_prepare_channel(self, channel: int):
         if self._record_pipeline_running or self.isRecording:
             return
+        if _auto_save_continuous() and _auto_save_enabled():
+            return
         ch = int(channel)
         self._auto_save_hold_channel = ch
-        from app.gstreamer_preview_registry import request_stop_all_sync
+        from app.gstreamer_preview_registry import request_stop_sync
 
-        chs = [
-            c
-            for c in range(1, self._camera_count + 1)
-            if stream_enabled(c) and channel_probe_ok(c)
-        ]
-        if ch not in chs:
-            chs = chs or [ch]
-        stopped = request_stop_all_sync(chs, timeout=7.0)
-        print(
-            f"[CAMERA-VIDEO] Auto-save: stopped {stopped}/{len(chs)} previews before CH{ch} clip"
-        )
-        self._set_preview_paused_channel(0)
-        self._set_preview_global_hold(True)
+        stopped = request_stop_sync(ch, timeout=6.0)
+        print(f"[CAMERA-VIDEO] Record: CH{ch} preview stop={stopped}")
+        self._set_preview_global_hold(False)
+        self._set_preview_paused_channel(ch)
         release_ms = int(
-            float(os.environ.get("CAMERA_VIDEO_PREVIEW_RELEASE_SEC", "6.0")) * 1000
+            float(os.environ.get("CAMERA_VIDEO_PREVIEW_RELEASE_SEC", "1.2")) * 1000
         )
-        QTimer.singleShot(max(1000, release_ms), self._auto_save_pause_event.set)
+        QTimer.singleShot(max(400, release_ms), self._auto_save_pause_event.set)
 
     def _auto_save_release_preview(self):
         if self._record_pipeline_running:

@@ -9,9 +9,9 @@ _lock = threading.Lock()
 
 def _interval_sec() -> float:
     try:
-        return max(30.0, float(os.environ.get("CAMERA_VIDEO_SYNC_INTERVAL_SEC", "90")))
+        return max(3.0, float(os.environ.get("CAMERA_VIDEO_SYNC_INTERVAL_SEC", "5")))
     except ValueError:
-        return 90.0
+        return 5.0
 
 
 def _tick():
@@ -23,7 +23,7 @@ def _tick():
     pending = list_clips("pending")
     if not pending:
         return
-    ok_n, fail_n = sync_pending_to_database(limit=3)
+    ok_n, fail_n = sync_pending_to_database(limit=12)
     if ok_n or fail_n:
         print(f"[CAMERA-VIDEO] Background sync: ok={ok_n} fail={fail_n}")
 

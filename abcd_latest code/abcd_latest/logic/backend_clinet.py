@@ -395,20 +395,17 @@ def _encode_multipart(fields, file_field, file_bytes, filename, content_type):
     return body, content_type_header
 
 
-def post_camera_video(
-    file_path,
+def post_camera_video_bytes(
+    video_bytes: bytes,
+    filename: str,
     machine_id,
     title=None,
     camera_channel=None,
     duration_sec=None,
+    mime=None,
     timeout=300,
 ):
-    """
-    POST /api/camera-videos — multipart upload (frontend Camera Videos module).
-
-    Returns:
-        (ok: bool, status_code: int|None, body_text: str)
-    """
+    """POST /api/camera-videos from memory (no extra read step)."""
     base = get_backend_base()
     if not base:
         return False, None, "BACKEND_BASE_URL not configured"
@@ -417,32 +414,26 @@ def post_camera_video(
     if not mid:
         return False, None, "machine_id is empty"
 
-    path = str(file_path or "").strip()
-    if not path or not os.path.isfile(path):
-        return False, None, f"file not found: {path}"
+    if not video_bytes or len(video_bytes) < 256:
+        return False, None, "video too small"
 
-    with open(path, "rb") as f:
-        video_bytes = f.read()
+    name = str(filename or "clip.mp4").strip() or "clip.mp4"
+    ext = os.path.splitext(name)[1].lower()
+    if not mime:
+        if ext == ".webm":
+            mime = "video/webm"
+        elif ext == ".mp4":
+            mime = "video/mp4"
+        else:
+            mime = "application/octet-stream"
 
-    if len(video_bytes) < 256:
-        return False, None, "video file too small"
-
-    ext = os.path.splitext(path)[1].lower()
-    if ext == ".webm":
-        mime = "video/webm"
-    elif ext == ".mp4":
-        mime = "video/mp4"
-    else:
-        mime = "application/octet-stream"
-
-    filename = os.path.basename(path)
     fields = {
         "machineId": mid,
-        "title": str(title or filename).strip() or filename,
+        "title": str(title or name).strip() or name,
         "cameraChannel": str(camera_channel).strip() if camera_channel else None,
         "durationSec": str(int(duration_sec)) if duration_sec is not None else None,
     }
-    body, ctype = _encode_multipart(fields, "video", video_bytes, filename, mime)
+    body, ctype = _encode_multipart(fields, "video", video_bytes, name, mime)
 
     url = f"{base}/api/camera-videos"
     req = urllib.request.Request(
@@ -460,3 +451,40 @@ def post_camera_video(
         return False, e.code, raw
     except urllib.error.URLError as e:
         return False, None, str(e.reason)
+
+
+def post_camera_video(
+    file_path,
+    machine_id,
+    title=None,
+    camera_channel=None,
+    duration_sec=None,
+    timeout=300,
+):
+    """POST /api/camera-videos — multipart upload (frontend Camera Videos module)."""
+    path = str(file_path or "").strip()
+    if not path or not os.path.isfile(path):
+        return False, None, f"file not found: {path}"
+
+    with open(path, "rb") as f:
+        video_bytes = f.read()
+
+    filename = os.path.basename(path)
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".webm":
+        mime = "video/webm"
+    elif ext == ".mp4":
+        mime = "video/mp4"
+    else:
+        mime = "application/octet-stream"
+
+    return post_camera_video_bytes(
+        video_bytes,
+        filename,
+        machine_id,
+        title=title,
+        camera_channel=camera_channel,
+        duration_sec=duration_sec,
+        mime=mime,
+        timeout=timeout,
+    )

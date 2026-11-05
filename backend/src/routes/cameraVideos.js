@@ -22,7 +22,7 @@ router.post('/', upload.single('video'), async (req, res) => {
       return res.status(400).json({ success: false, message: 'video file is required' });
     }
 
-    const doc = await CameraVideo.uploadFromBuffer({
+    const doc = await CameraVideo.upsertFromBuffer({
       buffer: req.file.buffer,
       filename: req.file.originalname || 'recording.webm',
       mimeType: req.file.mimetype,
@@ -46,11 +46,30 @@ router.post('/', upload.single('video'), async (req, res) => {
   }
 });
 
+router.post('/compact', async (req, res) => {
+  try {
+    const machineId = String(req.query.machineId || req.body?.machineId || '').trim() || undefined;
+    const force = req.query.force === '1' || req.body?.force === true;
+    const merged = await CameraVideo.compactSlots({ machineId, force });
+    return res.json({
+      success: true,
+      message: merged.length ? `Merged ${merged.length} channel slot(s)` : 'Nothing to merge',
+      data: merged,
+    });
+  } catch (error) {
+    console.error('POST /api/camera-videos/compact:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Compact failed',
+    });
+  }
+});
+
 router.get('/', async (req, res) => {
   try {
     const machineId = String(req.query.machineId || '').trim() || undefined;
     const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 50;
-    const rows = await CameraVideo.findAll({ machineId, limit });
+    const rows = await CameraVideo.findForDisplay({ machineId, limit });
     return res.json({
       success: true,
       data: rows.map((r) => CameraVideo.serialize(r)),
@@ -96,6 +115,7 @@ router.get('/:id/stream', async (req, res) => {
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkEnd - start + 1,
         'Content-Type': contentType,
+        'Cache-Control': 'no-store, max-age=0',
       });
       const stream = CameraVideo.openDownloadStream(doc.gridFsId, {
         start,
@@ -112,6 +132,7 @@ router.get('/:id/stream', async (req, res) => {
       'Content-Length': size,
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
+      'Cache-Control': 'no-store, max-age=0',
     });
     const stream = CameraVideo.openDownloadStream(doc.gridFsId);
     stream.on('error', () => {

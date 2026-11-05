@@ -29,7 +29,7 @@ Rectangle {
             color: root.textDim
             font.pixelSize: 11
             horizontalAlignment: Text.AlignHCenter
-            text: "Start all = live view on Pi. Website clips: set CAMERA_AUTO_SAVE=1 when stable."
+            text: "Start all = live. Continuous: 10s clips per channel → website (never stops while ON)."
         }
 
         GridLayout {

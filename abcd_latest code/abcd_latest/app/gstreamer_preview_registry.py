@@ -20,6 +20,18 @@ def unregister_preview_item(camera_id: int, item) -> None:
             _by_channel.pop(cid, None)
 
 
+def get_preview_item(camera_id: int):
+    with _lock:
+        ref = _by_channel.get(int(camera_id))
+        return ref() if ref is not None else None
+
+
+def feed_clip_frame(channel_id: int, image) -> None:
+    from hardware.preview_clip_record import feed_clip_frame as _feed
+
+    _feed(int(channel_id), image)
+
+
 def request_stop_sync(camera_id: int, timeout: float = 6.0) -> bool:
     """Stop appsink pipeline and join (call from Qt main thread)."""
     with _lock:
