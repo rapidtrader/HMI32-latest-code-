@@ -69,7 +69,7 @@ export function useReportsRuntime() {
   });
 }
 
-export function useCameraVideos(machineId) {
+export function useCameraVideos(machineId, { pausePolling = false } = {}) {
   return useQuery({
     queryKey: ['hmi32', 'camera-videos', machineId || 'all'],
     queryFn: async () => {
@@ -80,6 +80,7 @@ export function useCameraVideos(machineId) {
       const raw = Array.isArray(data.data) ? data.data : [];
       return dedupeCameraVideosForDisplay(raw);
     },
-    refetchInterval: 3000,
+    refetchInterval: pausePolling ? false : 15000,
+    refetchIntervalInBackground: false,
   });
 }

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  apiUrl,
   compactCameraVideos,
   deleteCameraVideo,
   getApiBaseLabel,
@@ -11,6 +10,7 @@ import {
 } from '../api/client';
 import { useCameraVideos } from '../hooks/useHmi32Queries';
 import { channelSortKey, inferCameraChannel } from '../utils/cameraVideoSlots';
+import CameraSlotVideo from './CameraSlotVideo';
 import PageLayout from './PageLayout';
 
 const fmtBytes = (n) => {
@@ -47,11 +47,19 @@ const CameraVideosPage = () => {
   const queryClient = useQueryClient();
   const [filterMachine, setFilterMachine] = useState('');
   const queryMachine = filterMachine.trim() || undefined;
-  const { data: videosRaw = [], isLoading, error, isFetching } = useCameraVideos(queryMachine);
-  const videos = [...videosRaw].sort((a, b) => channelSortKey(a) - channelSortKey(b));
-  const [uploadError, setUploadError] = useState('');
   const [mergeHint, setMergeHint] = useState('');
   const [apiCheck, setApiCheck] = useState(null);
+  const [playingCount, setPlayingCount] = useState(0);
+  const [uploadError, setUploadError] = useState('');
+
+  const onVideoPlayingChange = (isPlaying) => {
+    setPlayingCount((n) => Math.max(0, n + (isPlaying ? 1 : -1)));
+  };
+
+  const { data: videosRaw = [], isLoading, error, isFetching } = useCameraVideos(queryMachine, {
+    pausePolling: playingCount > 0,
+  });
+  const videos = [...videosRaw].sort((a, b) => channelSortKey(a) - channelSortKey(b));
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['hmi32', 'camera-videos'] });
@@ -164,7 +172,7 @@ const CameraVideosPage = () => {
           {apiCheck?.ok && videos.length === 0 && (
             <p style={{ margin: '0.5rem 0 0', color: '#6b7280' }}>
               API OK — empty DB. Pi saves clips to <code>data/camera_videos.json</code> first, then
-              uploads to this server (~90s after Start all with AUTO_SAVE=1). Page refreshes every 3s.
+              uploads to this server (~90s after Start all with AUTO_SAVE=1). List refreshes every 15s (paused while video plays).
             </p>
           )}
         </div>
@@ -211,15 +219,7 @@ const CameraVideosPage = () => {
               return (
               <article key={v.id} className="hmi32-video-item">
                 {playable ? (
-                <video
-                  key={`${v.id}-${v.updated_at || v.created_at}-${v.sizeBytes || 0}`}
-                  className="hmi32-video-item__player"
-                  controls
-                  preload="metadata"
-                  src={apiUrl(
-                    `/api/camera-videos/${v.id}/stream?t=${encodeURIComponent(v.updated_at || v.created_at || '')}`
-                  )}
-                />
+                  <CameraSlotVideo video={v} onPlayingChange={onVideoPlayingChange} />
                 ) : (
                   <div className="hmi32-video-item__player hmi32-video-empty" style={{ minHeight: 120 }}>
                     No frames yet — start this camera on Pi preview
