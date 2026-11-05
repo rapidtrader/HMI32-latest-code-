@@ -1,21 +1,63 @@
+const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
-require('dotenv').config();
+
+// Load once from backend/.env regardless of PM2 cwd quirks
+require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const mongoConfig = {
-  uri: process.env.MONGODB_URI || 'mongodb://localhost:27017',
-  database: process.env.MONGODB_DB_NAME || 'gpsDB',
+  get uri() {
+    return process.env.MONGODB_URI || 'mongodb://localhost:27017';
+  },
+  get database() {
+    return process.env.MONGODB_DB_NAME || 'gpsDB';
+  },
 };
 
-const client = new MongoClient(mongoConfig.uri, {
-  serverSelectionTimeoutMS: 15000,
-  connectTimeoutMS: 15000,
-});
+function mongoHostForLog(uri) {
+  const s = String(uri || '');
+  const m = s.match(/@([^/?]+)/);
+  return m ? m[1] : s.slice(0, 40);
+}
+
+function buildClientOptions() {
+  const opts = {
+    serverSelectionTimeoutMS: 30000,
+    connectTimeoutMS: 30000,
+    retryWrites: true,
+    maxPoolSize: 20,
+  };
+  if (String(mongoConfig.uri).startsWith('mongodb+srv://')) {
+    opts.tls = true;
+  }
+  return opts;
+}
+
+let client;
 let db;
 
+const getClient = () => {
+  if (!client) {
+    client = new MongoClient(mongoConfig.uri, buildClientOptions());
+  }
+  return client;
+};
+
 const testConnection = async () => {
-  await client.connect();
-  console.log('MongoDB connected successfully');
-  return true;
+  const host = mongoHostForLog(mongoConfig.uri);
+  console.log(`[db] Connecting to MongoDB (${host}) database=${mongoConfig.database}…`);
+  try {
+    await getClient().connect();
+    await getClient().db(mongoConfig.database).command({ ping: 1 });
+    console.log('MongoDB connected successfully');
+    return true;
+  } catch (error) {
+    console.error('[db] MongoDB connection failed:', error.message);
+    console.error(
+      '[db] Fix: MongoDB Atlas → Network Access → allow this VPS public IP; ' +
+        'verify MONGODB_URI in backend/.env (same cluster as gps-backend if shared)'
+    );
+    throw error;
+  }
 };
 
 const ensureIndex = async (collection, spec, options = {}) => {
@@ -29,7 +71,7 @@ const ensureIndex = async (collection, spec, options = {}) => {
 };
 
 const initializeDatabase = async () => {
-  db = client.db(mongoConfig.database);
+  db = getClient().db(mongoConfig.database);
 
   const hmi32Latest = db.collection('hmi32_latest');
   await ensureIndex(hmi32Latest, { machineId: 1 }, { unique: true });
@@ -61,8 +103,12 @@ const getDatabase = () => {
 };
 
 const closeDatabase = async () => {
-  await client.close();
-  console.log('MongoDB connection closed');
+  if (client) {
+    await client.close();
+    client = undefined;
+    db = undefined;
+    console.log('MongoDB connection closed');
+  }
 };
 
 const toObjectId = (id) => new ObjectId(id);
@@ -74,4 +120,5 @@ module.exports = {
   closeDatabase,
   toObjectId,
   ObjectId,
+  mongoHostForLog,
 };

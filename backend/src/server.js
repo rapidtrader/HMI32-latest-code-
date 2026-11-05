@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const { Server: SocketIOServer } = require('socket.io');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 const { testConnection, initializeDatabase } = require('./mongodb');
 const Hmi32Latest = require('./models/Hmi32Latest');
@@ -645,6 +645,7 @@ const startServer = async () => {
     console.log('[api] Ready — accepting /api requests');
   } catch (error) {
     console.error('Failed to initialize API (still listening on port for debug):', error.message);
+    if (error.stack) console.error(error.stack.split('\n').slice(0, 5).join('\n'));
   }
 };
 
