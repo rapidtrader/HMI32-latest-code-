@@ -5,9 +5,72 @@ const { spawn } = require('child_process');
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+/** Working binary after startup probe (prefers /usr/bin/ffmpeg over broken PATH build). */
+let workingFfmpegBin = null;
+
+function resolveFfmpegCandidates() {
+  const fromEnv = process.env.FFMPEG_PATH ? String(process.env.FFMPEG_PATH).trim() : '';
+  return [...new Set([fromEnv, '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', 'ffmpeg'].filter(Boolean))];
+}
+
+function probeFfmpegBinary(bin) {
+  return new Promise((resolve) => {
+    const p = spawn(bin, ['-version'], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let combined = '';
+    p.stdout.on('data', (d) => {
+      combined += d.toString();
+    });
+    p.stderr.on('data', (d) => {
+      combined += d.toString();
+    });
+    p.on('error', () => resolve({ ok: false, bin, detail: 'spawn failed' }));
+    p.on('close', (code) => {
+      if (code === 0) {
+        resolve({ ok: true, bin, detail: combined.split('\n')[0] || bin });
+      } else {
+        resolve({ ok: false, bin, detail: combined.slice(-400) || `exit ${code}` });
+      }
+    });
+  });
+}
+
+async function pickWorkingFfmpeg() {
+  if (workingFfmpegBin) return workingFfmpegBin;
+  for (const bin of resolveFfmpegCandidates()) {
+    if (bin.includes('/') && !fs.existsSync(bin)) continue;
+    const r = await probeFfmpegBinary(bin);
+    if (r.ok) {
+      workingFfmpegBin = bin;
+      return bin;
+    }
+  }
+  return null;
+}
+
+async function verifyFfmpegAtStartup() {
+  const bin = await pickWorkingFfmpeg();
+  if (bin) {
+    const r = await probeFfmpegBinary(bin);
+    console.log(`[ffmpeg] OK: ${r.detail || bin}`);
+    return true;
+  }
+  console.warn(
+    '[ffmpeg] Clip merge disabled — install/fix ffmpeg on server:\n' +
+      '  sudo apt install -y ffmpeg liblapack3 libopenblas0\n' +
+      '  export FFMPEG_PATH=/usr/bin/ffmpeg  (PM2 ecosystem env)\n' +
+      '  See backend/scripts/install-ffmpeg-debian.sh'
+  );
+  return false;
+}
+
+function getFfmpegBinary() {
+  return workingFfmpegBin || process.env.FFMPEG_PATH || '/usr/bin/ffmpeg';
+}
+
 function runFfmpeg(args, timeoutMs = 120000) {
   return new Promise((resolve, reject) => {
-    const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    const ffPath = getFfmpegBinary();
+    const ff = spawn(ffPath, args, { stdio: ['ignore', 'pipe', 'pipe'] });
     let stderr = '';
     ff.stderr.on('data', (d) => {
       stderr += d.toString();
@@ -36,6 +99,13 @@ function runFfmpeg(args, timeoutMs = 120000) {
  * Concatenate video files (same codec) into one file. Uses stream copy first, then re-mux.
  */
 async function concatVideoFiles(inputPaths, outputPath) {
+  const bin = await pickWorkingFfmpeg();
+  if (!bin) {
+    throw new Error(
+      'ffmpeg unavailable (install: apt install ffmpeg liblapack3 — or set FFMPEG_PATH=/usr/bin/ffmpeg)'
+    );
+  }
+
   const existing = inputPaths.filter((p) => p && fs.existsSync(p) && fs.statSync(p).size > 0);
   if (existing.length === 0) {
     throw new Error('no input files to concat');
@@ -142,4 +212,6 @@ module.exports = {
   concatVideoFiles,
   withTempDir,
   withChannelLock,
+  verifyFfmpegAtStartup,
+  pickWorkingFfmpeg,
 };

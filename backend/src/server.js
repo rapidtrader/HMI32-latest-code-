@@ -13,6 +13,7 @@ const RuntimeData = require('./models/RuntimeData');
 const { registerUser, loginUser, verifyToken, isSignupAllowed } = require('./services/authService');
 const cameraVideosRouter = require('./routes/cameraVideos');
 const CameraVideo = require('./models/CameraVideo');
+const { verifyFfmpegAtStartup } = require('./utils/videoConcat');
 const app = express();
 const httpServer = http.createServer(app);
 const PORT = process.env.PORT || 4002;
@@ -607,6 +608,7 @@ const startServer = async () => {
     await SuctionSession.ensureIndexes().catch((e) => console.warn('SuctionSession index warn:', e.message));
     await RuntimeData.ensureIndexes().catch((e) => console.warn('RuntimeData index warn:', e.message));
     await CameraVideo.ensureIndexes().catch((e) => console.warn('CameraVideo index warn:', e.message));
+    await verifyFfmpegAtStartup().catch(() => {});
 
     httpServer.listen(PORT, HOST, () => {
       const dbName = process.env.MONGODB_DB_NAME || 'gpsDB';

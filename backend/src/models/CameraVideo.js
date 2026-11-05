@@ -183,39 +183,65 @@ class CameraVideo {
       const addDur = segDur != null ? segDur : 10;
       const totalDur = prevDur + addDur;
 
-      const merged = await withTempDir(async (dir) => {
-        const oldPath = path.join(dir, 'existing.mp4');
-        const segPath = path.join(dir, 'segment.mp4');
-        const outPath = path.join(dir, 'merged.mp4');
-        await this.downloadGridFsToFile(existing.gridFsId, oldPath);
-        fs.writeFileSync(segPath, buffer);
-        await concatVideoFiles([oldPath, segPath], outPath);
-        return this.uploadFileToGridFs(outPath, `${ch}_rolling.mp4`, mime, {
-          machineId: mid,
+      const replaceWithLatestSegment = async (reason) => {
+        console.warn(`[CameraVideo] merge skip ${mid}/${ch}: ${reason}`);
+        const { gridFsId, sizeBytes } = await uploadBufferOnly();
+        try {
+          await bucket.delete(existing.gridFsId);
+        } catch {
+          /* ignore */
+        }
+        const metaFields = {
           title: displayTitle,
           cameraChannel: ch,
-        });
-      });
-
-      try {
-        await bucket.delete(existing.gridFsId);
-      } catch {
-        /* old file may be missing */
-      }
-
-      const metaFields = {
-        title: displayTitle,
-        cameraChannel: ch,
-        filename: `${ch}_rolling.mp4`,
-        mimeType: mime,
-        sizeBytes: merged.sizeBytes,
-        durationSec: totalDur,
-        gridFsId: merged.gridFsId,
-        updated_at: now,
+          filename: safeName,
+          mimeType: mime,
+          sizeBytes,
+          durationSec: segDur,
+          gridFsId,
+          updated_at: now,
+        };
+        await col.updateOne({ _id: existing._id }, { $set: metaFields });
+        return col.findOne({ _id: existing._id });
       };
 
-      await col.updateOne({ _id: existing._id }, { $set: metaFields });
-      return col.findOne({ _id: existing._id });
+      try {
+        const merged = await withTempDir(async (dir) => {
+          const oldPath = path.join(dir, 'existing.mp4');
+          const segPath = path.join(dir, 'segment.mp4');
+          const outPath = path.join(dir, 'merged.mp4');
+          await this.downloadGridFsToFile(existing.gridFsId, oldPath);
+          fs.writeFileSync(segPath, buffer);
+          await concatVideoFiles([oldPath, segPath], outPath);
+          return this.uploadFileToGridFs(outPath, `${ch}_rolling.mp4`, mime, {
+            machineId: mid,
+            title: displayTitle,
+            cameraChannel: ch,
+          });
+        });
+
+        try {
+          await bucket.delete(existing.gridFsId);
+        } catch {
+          /* old file may be missing */
+        }
+
+        const metaFields = {
+          title: displayTitle,
+          cameraChannel: ch,
+          filename: `${ch}_rolling.mp4`,
+          mimeType: mime,
+          sizeBytes: merged.sizeBytes,
+          durationSec: totalDur,
+          gridFsId: merged.gridFsId,
+          updated_at: now,
+        };
+
+        await col.updateOne({ _id: existing._id }, { $set: metaFields });
+        return col.findOne({ _id: existing._id });
+      } catch (mergeErr) {
+        return replaceWithLatestSegment(mergeErr.message || 'merge failed');
+      }
     });
   }
 
