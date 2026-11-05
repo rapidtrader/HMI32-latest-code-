@@ -371,6 +371,8 @@ class CameraVideo {
       durationSec: this.estimateDurationSec(sizeBytes, doc.durationSec),
       created_at: doc.created_at,
       updated_at: doc.updated_at || doc.created_at,
+      playbackMode:
+        process.env.CAMERA_VIDEO_DIRECT_SLOT !== '0' ? 'direct' : 'rolling',
     };
   }
 
@@ -418,6 +420,43 @@ class CameraVideo {
       await col.deleteOne({ _id: dup._id });
     }
     return keep;
+  }
+
+  static async replaceSlotWithLatestSegment({
+    buffer,
+    safeName,
+    mime,
+    mid,
+    ch,
+    segDur,
+    displayTitle,
+    existing,
+  }) {
+    const col = getDatabase().collection(COLLECTION);
+    const now = new Date();
+    const uploaded = await this.uploadBufferToGridFs(buffer, safeName, mime, {
+      machineId: mid,
+      title: displayTitle,
+      cameraChannel: ch,
+    });
+    this.scheduleGridFsDelete(existing.gridFsId);
+    this.dropRollingCache(this.rollingCacheKey(mid, ch));
+    await col.updateOne(
+      { _id: existing._id },
+      {
+        $set: {
+          title: displayTitle,
+          cameraChannel: ch,
+          filename: safeName,
+          mimeType: mime,
+          sizeBytes: uploaded.sizeBytes,
+          durationSec: segDur,
+          gridFsId: uploaded.gridFsId,
+          updated_at: now,
+        },
+      }
+    );
+    return col.findOne({ _id: existing._id });
   }
 
   static async appendPendingSegment({
@@ -507,9 +546,22 @@ class CameraVideo {
     }
 
     const asyncMerge = process.env.CAMERA_VIDEO_ASYNC_MERGE !== '0';
-    if (asyncMerge) {
+    const directSlot = process.env.CAMERA_VIDEO_DIRECT_SLOT !== '0';
+    if (asyncMerge || directSlot) {
       const existingFast = await col.findOne({ machineId: mid, cameraChannel: ch });
-      if (existingFast) {
+      if (existingFast && directSlot) {
+        return this.replaceSlotWithLatestSegment({
+          buffer,
+          safeName,
+          mime,
+          mid,
+          ch,
+          segDur,
+          displayTitle,
+          existing: existingFast,
+        });
+      }
+      if (existingFast && asyncMerge && !directSlot) {
         return this.appendPendingSegment({
           buffer,
           safeName,
@@ -542,6 +594,19 @@ class CameraVideo {
         };
         const result = await col.insertOne(meta);
         return { ...meta, _id: result.insertedId };
+      }
+
+      if (directSlot) {
+        return this.replaceSlotWithLatestSegment({
+          buffer,
+          safeName,
+          mime,
+          mid,
+          ch,
+          segDur,
+          displayTitle,
+          existing,
+        });
       }
 
       if (asyncMerge) {

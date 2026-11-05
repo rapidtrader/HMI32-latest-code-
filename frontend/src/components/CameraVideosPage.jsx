@@ -97,8 +97,8 @@ const CameraVideosPage = () => {
       title="Camera Videos"
       subtitle={
         socketLive
-          ? 'Live recordings from Pi cameras · realtime Socket.IO'
-          : 'Live recordings from Pi cameras'
+          ? 'Latest saved clip per channel (direct play) · Socket.IO'
+          : 'Latest saved clip per channel — use Merge old clips for long recording'
       }
       loading={isLoading}
       loadingText="Loading videos..."
@@ -155,7 +155,11 @@ const CameraVideosPage = () => {
                   <p className="hmi32-video-item__sub">{v.machineId}</p>
                   <p className="hmi32-video-item__sub">
                     Updated {fmtDate(v.updated_at || v.created_at)} · {fmtBytes(v.sizeBytes)}
-                    {v.durationSec ? ` · growing ${fmtDuration(v.durationSec)}` : ''}
+                    {v.durationSec
+                      ? v.playbackMode === 'direct'
+                        ? ` · clip ${fmtDuration(v.durationSec)}`
+                        : ` · growing ${fmtDuration(v.durationSec)}`
+                      : ''}
                   </p>
                   <button type="button" className="hmi32-video-item__delete" onClick={() => onDelete(v.id)}>
                     Delete

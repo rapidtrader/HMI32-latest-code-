@@ -58,6 +58,8 @@ router.post('/', upload.single('video'), async (req, res) => {
       durationSec: req.body.durationSec,
     });
 
+    streamMetaCache.delete(String(doc._id));
+
     const ms = Date.now() - t0;
     const slowMs = Number(process.env.CAMERA_VIDEO_SLOW_POST_MS) || 15000;
     if (ms > slowMs) {
