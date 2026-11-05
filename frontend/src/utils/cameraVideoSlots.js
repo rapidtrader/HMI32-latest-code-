@@ -48,6 +48,8 @@ export function dedupeCameraVideosForDisplay(videos) {
     byKey.set(key, ch ? { ...next, cameraChannel: ch } : next);
   }
 
+  const out = [...byKey.values()];
+
   return out.sort((a, b) => {
     const ma = String(a.machineId || '').localeCompare(String(b.machineId || ''));
     if (ma !== 0) return ma;
