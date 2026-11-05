@@ -11,8 +11,12 @@ export const apiUrl = (path) => {
 /** Shown in UI — where Camera Videos API calls go */
 export function getApiBaseLabel() {
   if (rawBase) return rawBase;
-  if (typeof window !== 'undefined' && window.location?.port === '5173') {
-    return `${window.location.origin} → proxy → http://127.0.0.1:4002`;
+  const proxy =
+    typeof import.meta !== 'undefined' && import.meta.env?.VITE_DEV_PROXY_TARGET
+      ? String(import.meta.env.VITE_DEV_PROXY_TARGET).replace(/\/$/, '')
+      : 'http://127.0.0.1:4002';
+  if (typeof window !== 'undefined' && import.meta.env?.DEV) {
+    return `${window.location.origin} → proxy → ${proxy}`;
   }
   return typeof window !== 'undefined' ? window.location.origin : '(relative)';
 }
