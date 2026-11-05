@@ -86,6 +86,7 @@ def upload_clip_direct(
         title=title,
         camera_channel=ch,
         duration_sec=duration_sec,
+        timeout=int(os.environ.get("CAMERA_VIDEO_UPLOAD_TIMEOUT_SEC", "900")),
     )
     if ok:
         print(f"[CAMERA-VIDEO] Uploaded to backend ({mid}, {ch})")

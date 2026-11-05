@@ -55,6 +55,8 @@ def push_clip_to_server(
     ch = f"CH{int(camera_id)}"
     stamp = title or f"{ch} clip"
 
+    upload_timeout = int(os.environ.get("CAMERA_VIDEO_UPLOAD_TIMEOUT_SEC", "900"))
+
     if direct:
         with _upload_slots:
             ok, code, text = post_camera_video(
@@ -63,6 +65,7 @@ def push_clip_to_server(
                 title=stamp,
                 camera_channel=ch,
                 duration_sec=duration_sec,
+                timeout=upload_timeout,
             )
         if ok:
             if delete_after:
@@ -97,7 +100,7 @@ def start_continuous_preview_upload(channel_ids: List[int]) -> Tuple[bool, str]:
 
     if not _continuous_enabled():
         return False, "continuous mode off"
-    sec = float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "10"))
+    sec = float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "600"))
     ok = start_rolling_capture(channel_ids, segment_sec=sec)
     if not ok:
         return False, "no live preview for rolling capture"
@@ -123,7 +126,7 @@ def record_all_channels_from_preview(
     )
 
     sec = clip_sec if clip_sec is not None else float(
-        os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "10")
+        os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "600")
     )
     sec = max(3.0, float(sec))
     chs = [int(c) for c in channel_ids if is_preview_live(int(c))]
@@ -158,7 +161,7 @@ def record_save_and_sync(
     from hardware.camera_video_record import CameraVideoRecorder
 
     sec = clip_sec if clip_sec is not None else float(
-        os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "10")
+        os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "600")
     )
     sec = max(3.0, float(sec))
     settle = float(os.environ.get("CAMERA_AUTO_SAVE_SETTLE_SEC", "0.2"))

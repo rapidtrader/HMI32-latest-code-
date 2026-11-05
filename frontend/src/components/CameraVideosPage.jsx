@@ -97,8 +97,8 @@ const CameraVideosPage = () => {
       title="Camera Videos"
       subtitle={
         socketLive
-          ? 'Latest saved clip per channel (direct play) · Socket.IO'
-          : 'Latest saved clip per channel — use Merge old clips for long recording'
+          ? 'Latest 10 min recording per channel (direct play) · Socket.IO'
+          : 'Latest 10 min recording per channel — Merge old clips for longer history'
       }
       loading={isLoading}
       loadingText="Loading videos..."
@@ -157,7 +157,7 @@ const CameraVideosPage = () => {
                     Updated {fmtDate(v.updated_at || v.created_at)} · {fmtBytes(v.sizeBytes)}
                     {v.durationSec
                       ? v.playbackMode === 'direct'
-                        ? ` · clip ${fmtDuration(v.durationSec)}`
+                        ? ` · ${fmtDuration(v.durationSec)} recording`
                         : ` · growing ${fmtDuration(v.durationSec)}`
                       : ''}
                   </p>

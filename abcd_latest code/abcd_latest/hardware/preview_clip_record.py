@@ -1,4 +1,4 @@
-"""Live preview → continuous 10s segments → JSON → server (never stops while cameras ON)."""
+"""Live preview → continuous segments (default 10 min) → server while cameras ON."""
 import os
 import subprocess
 import threading
@@ -27,9 +27,10 @@ def _clip_fps() -> int:
 
 def _segment_sec() -> float:
     try:
-        return max(3.0, float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "10")))
+        sec = float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "600"))
+        return max(3.0, min(3600.0, sec))
     except ValueError:
-        return 10.0
+        return 600.0
 
 
 def _ffmpeg_encode_cmd(out_path: str, w: int, h: int, fps: int) -> List[str]:
@@ -287,7 +288,7 @@ def _publish_clip(channel_id: int, path: str, duration: float) -> None:
 
 
 class RollingCaptureManager:
-    """Per channel: endless 10s segments; encode+upload in background, preview never stops."""
+    """Per channel: continuous segments (e.g. 10 min); encode+upload in background."""
 
     def __init__(self):
         self._halt = threading.Event()

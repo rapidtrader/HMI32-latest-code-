@@ -187,6 +187,7 @@ def sync_pending_to_database(limit: Optional[int] = None) -> Tuple[int, int]:
             title=row.get("title"),
             camera_channel=row.get("cameraChannel"),
             duration_sec=row.get("durationSec"),
+            timeout=int(os.environ.get("CAMERA_VIDEO_UPLOAD_TIMEOUT_SEC", "900")),
         )
         if ok:
             server_id = None
