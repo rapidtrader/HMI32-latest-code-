@@ -1,12 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   compactCameraVideos,
   deleteCameraVideo,
-  getApiBaseLabel,
-  getPiBackendUrlHint,
-  isLocalPiBackendHint,
-  checkCameraVideosApi,
 } from '../api/client';
 import { useCameraVideos } from '../hooks/useHmi32Queries';
 import { channelSortKey, inferCameraChannel } from '../utils/cameraVideoSlots';
@@ -48,9 +44,9 @@ const CameraVideosPage = () => {
   const [filterMachine, setFilterMachine] = useState('');
   const queryMachine = filterMachine.trim() || undefined;
   const [mergeHint, setMergeHint] = useState('');
-  const [apiCheck, setApiCheck] = useState(null);
-  const [playingCount, setPlayingCount] = useState(0);
   const [uploadError, setUploadError] = useState('');
+
+  const [playingCount, setPlayingCount] = useState(0);
 
   const onVideoPlayingChange = (isPlaying) => {
     setPlayingCount((n) => Math.max(0, n + (isPlaying ? 1 : -1)));
@@ -64,10 +60,6 @@ const CameraVideosPage = () => {
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['hmi32', 'camera-videos'] });
   };
-
-  useEffect(() => {
-    checkCameraVideosApi().then(setApiCheck);
-  }, []);
 
   const runMergeOldClips = async () => {
     setUploadError('');
@@ -93,13 +85,11 @@ const CameraVideosPage = () => {
   };
 
   const machineOptions = [...new Set(videos.map((v) => v.machineId).filter(Boolean))];
-  const piBackend = getPiBackendUrlHint();
-  const piLocalDev = isLocalPiBackendHint(piBackend);
 
   return (
     <PageLayout
       title="Camera Videos"
-      subtitle="One growing file per camera — old ~10s segments are merged on the server (needs ffmpeg + latest backend)"
+      subtitle="Live recordings from Pi cameras"
       loading={isLoading}
       loadingText="Loading videos..."
       error={error}
@@ -108,75 +98,6 @@ const CameraVideosPage = () => {
       {uploadError && <div className="hmi32-alert">{uploadError}</div>}
       {mergeHint && <div className="hmi32-alert">{mergeHint}</div>}
 
-      <div className="hmi32-card" style={{ marginBottom: '1rem' }}>
-        <div className="hmi32-card__head">
-          <h2>API connection</h2>
-        </div>
-        <div style={{ padding: '0.85rem 1.1rem', fontSize: '0.82rem', color: '#374151', lineHeight: 1.5 }}>
-          <p style={{ margin: '0 0 0.5rem' }}>
-            <strong>Website reads from:</strong> {getApiBaseLabel()}
-          </p>
-          {piBackend && (
-            <div
-              style={{
-                margin: '0.5rem 0',
-                padding: '0.65rem 0.75rem',
-                background: '#eff6ff',
-                border: '1px solid #bfdbfe',
-                borderRadius: '8px',
-              }}
-            >
-              <p style={{ margin: 0, fontWeight: 600, color: '#1e40af' }}>Pi par ye set karo (same database):</p>
-              <pre
-                style={{
-                  margin: '0.4rem 0 0',
-                  fontSize: '0.78rem',
-                  whiteSpace: 'pre-wrap',
-                  color: '#1e3a8a',
-                }}
-              >
-                {`// abcd_latest/data/backend.json\n{\n  "backendBaseUrl": "${piBackend}",\n  "canRequireResponse": true\n}`}
-              </pre>
-              <p style={{ margin: '0.5rem 0 0', fontSize: '0.75rem', color: '#374151' }}>
-                Pi par <code>127.0.0.1</code> mat likho — woh Pi khud hai, PC nahi. File save karke HMI restart →
-                Cameras → Start all.
-                {piLocalDev ? (
-                  <>
-                    {' '}
-                    PC par Node <strong>:4002</strong> chal raha ho to Windows Firewall port <strong>4002</strong>{' '}
-                    allow karo.
-                  </>
-                ) : (
-                  <>
-                    {' '}
-                    Clips ke liye stable live view ke baad <code>cameraAutoSave: true</code> ya{' '}
-                    <code>CAMERA_AUTO_SAVE=1</code> (optional).
-                  </>
-                )}
-              </p>
-            </div>
-          )}
-          {!piBackend && (
-            <p style={{ margin: '0 0 0.5rem' }}>
-              <strong>Pi must upload to the same URL</strong> in <code>abcd_latest/data/backend.json</code>{' '}
-              (<code>backendBaseUrl</code>) — use this PC&apos;s LAN IP, not <code>127.0.0.1</code>.
-            </p>
-          )}
-          {apiCheck && !apiCheck.ok && (
-            <div className="hmi32-alert" style={{ marginTop: '0.5rem' }}>
-              {apiCheck.status === 404
-                ? 'Camera Videos API missing on this server (404). Deploy latest backend (camera-videos routes + multer) and restart Node.'
-                : `API problem: ${apiCheck.message}`}
-            </div>
-          )}
-          {apiCheck?.ok && videos.length === 0 && (
-            <p style={{ margin: '0.5rem 0 0', color: '#6b7280' }}>
-              API OK — empty DB. Pi saves clips to <code>data/camera_videos.json</code> first, then
-              uploads to this server (~90s after Start all with AUTO_SAVE=1). List refreshes every 15s (paused while video plays).
-            </p>
-          )}
-        </div>
-      </div>
       {isFetching && !isLoading && (
         <p className="hmi32-video-empty" style={{ paddingTop: 0 }}>
           Syncing with server…
