@@ -216,6 +216,6 @@ def sync_pending_to_database(limit: Optional[int] = None) -> Tuple[int, int]:
             fail_count += 1
             print(f"[CAMERA-VIDEO] JSON → database retry later: {err}")
 
-        time.sleep(0.2)
+        time.sleep(max(0.5, float(os.environ.get("CAMERA_VIDEO_SYNC_GAP_SEC", "1.5"))))
 
     return ok_count, fail_count

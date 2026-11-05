@@ -5,9 +5,13 @@ const { getDatabase } = require('../mongodb');
 const { concatVideoFiles, withTempDir, withChannelLock } = require('../utils/videoConcat');
 
 const COLLECTION = 'camera_videos';
+const PENDING_COLLECTION = 'camera_video_pending';
 const BUCKET_NAME = 'camera_videos_fs';
 const compactCooldownMs = 90 * 1000;
 const compactCooldown = new Map();
+const mergeDebounceMs = 1500;
+const mergeDebounceTimers = new Map();
+const mergeRunning = new Set();
 
 const getBucket = () => {
   const { GridFSBucket } = require('mongodb');
@@ -39,6 +43,146 @@ class CameraVideo {
       )
     );
     await safe(() => col.createIndex({ gridFsId: 1 }, { unique: true }));
+    const pend = db.collection(PENDING_COLLECTION);
+    await safe(() => pend.createIndex({ machineId: 1, cameraChannel: 1, created_at: 1 }));
+  }
+
+  static uploadBufferToGridFs(buffer, safeName, mimeType, metadata) {
+    const bucket = getBucket();
+    const sizeBytes = buffer.length;
+    return new Promise((resolve, reject) => {
+      const uploadStream = bucket.openUploadStream(safeName, {
+        contentType: mimeType || 'video/mp4',
+        metadata,
+      });
+      uploadStream.end(buffer);
+      uploadStream.on('finish', () => resolve({ gridFsId: uploadStream.id, sizeBytes }));
+      uploadStream.on('error', reject);
+    });
+  }
+
+  static scheduleBackgroundMerge(machineId, channel) {
+    const mid = String(machineId || '').trim();
+    const ch = this.normalizeChannel(channel);
+    if (!mid || !ch) return;
+    const key = `${mid}|${ch}`;
+    if (mergeDebounceTimers.has(key)) clearTimeout(mergeDebounceTimers.get(key));
+    mergeDebounceTimers.set(
+      key,
+      setTimeout(() => {
+        mergeDebounceTimers.delete(key);
+        this.runBackgroundMerge(mid, ch).catch((e) =>
+          console.warn(`[CameraVideo] background merge ${key}:`, e.message)
+        );
+      }, mergeDebounceMs)
+    );
+  }
+
+  static async runBackgroundMerge(machineId, channel) {
+    const mid = String(machineId || '').trim();
+    const ch = this.normalizeChannel(channel);
+    const key = `${mid}|${ch}`;
+    if (mergeRunning.has(key)) {
+      this.scheduleBackgroundMerge(mid, ch);
+      return;
+    }
+    mergeRunning.add(key);
+    try {
+      await withChannelLock(key, () => this.flushPendingSegments(mid, ch));
+    } finally {
+      mergeRunning.delete(key);
+    }
+  }
+
+  static async flushPendingSegments(machineId, channel) {
+    const db = getDatabase();
+    const bucket = getBucket();
+    const col = db.collection(COLLECTION);
+    const pendCol = db.collection(PENDING_COLLECTION);
+    const mid = String(machineId || '').trim();
+    const ch = this.normalizeChannel(channel);
+    const pending = await pendCol
+      .find({ machineId: mid, cameraChannel: ch })
+      .sort({ created_at: 1 })
+      .toArray();
+    if (!pending.length) return null;
+
+    let existing = await col.findOne({ machineId: mid, cameraChannel: ch });
+    const now = new Date();
+
+    if (!existing) {
+      const first = pending.shift();
+      const meta = {
+        machineId: mid,
+        title: ch,
+        cameraChannel: ch,
+        filename: `${ch}_rolling.mp4`,
+        mimeType: first.mimeType || 'video/mp4',
+        sizeBytes: first.sizeBytes || 0,
+        durationSec: first.durationSec,
+        gridFsId: first.gridFsId,
+        created_at: now,
+        updated_at: now,
+      };
+      const ins = await col.insertOne(meta);
+      existing = { ...meta, _id: ins.insertedId };
+      await pendCol.deleteOne({ _id: first._id });
+    }
+
+    if (!pending.length) return existing;
+
+    const addDur = pending.reduce((acc, p) => acc + (Number(p.durationSec) || 10), 0);
+    const prevDur = Number(existing.durationSec) || 0;
+
+    const merged = await withTempDir(async (dir) => {
+      const paths = [];
+      const mainPath = path.join(dir, 'main.mp4');
+      await this.downloadGridFsToFile(existing.gridFsId, mainPath);
+      if (fs.statSync(mainPath).size > 500) paths.push(mainPath);
+      for (let i = 0; i < pending.length; i += 1) {
+        const pth = path.join(dir, `pending_${i}.mp4`);
+        await this.downloadGridFsToFile(pending[i].gridFsId, pth);
+        if (fs.statSync(pth).size > 500) paths.push(pth);
+      }
+      if (paths.length === 0) return null;
+      const outPath = path.join(dir, `${ch}_rolling.mp4`);
+      await concatVideoFiles(paths, outPath);
+      return this.uploadFileToGridFs(outPath, `${ch}_rolling.mp4`, existing.mimeType || 'video/mp4', {
+        machineId: mid,
+        title: ch,
+        cameraChannel: ch,
+      });
+    });
+
+    if (!merged) return existing;
+
+    try {
+      await bucket.delete(existing.gridFsId);
+    } catch {
+      /* ignore */
+    }
+    for (const p of pending) {
+      try {
+        await bucket.delete(p.gridFsId);
+      } catch {
+        /* ignore */
+      }
+      await pendCol.deleteOne({ _id: p._id });
+    }
+
+    await col.updateOne(
+      { _id: existing._id },
+      {
+        $set: {
+          filename: `${ch}_rolling.mp4`,
+          sizeBytes: merged.sizeBytes,
+          durationSec: prevDur + addDur,
+          gridFsId: merged.gridFsId,
+          updated_at: now,
+        },
+      }
+    );
+    return col.findOne({ _id: existing._id });
   }
 
   static normalizeChannel(raw) {
@@ -186,6 +330,27 @@ class CameraVideo {
         };
         const result = await col.insertOne(meta);
         return { ...meta, _id: result.insertedId };
+      }
+
+      const asyncMerge = process.env.CAMERA_VIDEO_ASYNC_MERGE !== '0';
+      if (asyncMerge) {
+        const uploaded = await this.uploadBufferToGridFs(buffer, safeName, mime, {
+          machineId: mid,
+          title: displayTitle,
+          cameraChannel: ch,
+          pending: true,
+        });
+        await db.collection(PENDING_COLLECTION).insertOne({
+          machineId: mid,
+          cameraChannel: ch,
+          gridFsId: uploaded.gridFsId,
+          sizeBytes: uploaded.sizeBytes,
+          durationSec: segDur,
+          mimeType: mime,
+          created_at: now,
+        });
+        this.scheduleBackgroundMerge(mid, ch);
+        return existing;
       }
 
       const prevDur = Number(existing.durationSec) || 0;

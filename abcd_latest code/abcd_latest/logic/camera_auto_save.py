@@ -142,7 +142,7 @@ def record_all_channels_from_preview(
         save_clip_to_json_index(path, cid, duration_sec=duration, title=title)
         ok_n += 1
     if ok_n:
-        kick_sync_background(limit=16)
+        kick_sync_background(limit=2)
     return ok_n, fail_n, f"{ok_n}/{len(chs)} batch saved"
 
 
@@ -166,7 +166,7 @@ def record_save_and_sync(
     path, duration = rec.stop()
 
     save_clip_to_json_index(path, int(channel_id), duration_sec=duration, title=title)
-    kick_sync_background(limit=8)
+    kick_sync_background(limit=2)
     return True, 201, f"CH{channel_id} → JSON"
 
 

@@ -34,7 +34,7 @@ router.post('/', upload.single('video'), async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: 'Video saved',
+      message: 'Video accepted',
       data: CameraVideo.serialize(doc),
     });
   } catch (error) {

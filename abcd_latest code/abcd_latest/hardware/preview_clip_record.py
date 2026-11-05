@@ -283,7 +283,7 @@ def _publish_clip(channel_id: int, path: str, duration: float) -> None:
             f"[CAMERA-VIDEO] CH{channel_id} segment ({duration:.1f}s) "
             f"→ JSON retry queue"
         )
-        kick_sync_background(limit=16)
+        kick_sync_background(limit=2)
 
 
 class RollingCaptureManager:
