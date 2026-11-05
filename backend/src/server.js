@@ -51,6 +51,8 @@ const io = new SocketIOServer(httpServer, {
   cors: { origin: corsOrigins, credentials: true },
   transports: ['polling', 'websocket'],
 });
+const { setIo } = require('./realtime');
+setIo(io);
 
 const normalizeGps = (gps) => {
   if (!gps || typeof gps !== 'object') return gps;

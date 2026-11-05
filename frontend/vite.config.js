@@ -10,6 +10,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
+        '/api/camera-videos': {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: proxyTarget.startsWith('https'),
+          timeout: 0,
+          proxyTimeout: 0,
+        },
         '/api': {
           target: proxyTarget,
           changeOrigin: true,
@@ -20,6 +27,8 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           ws: true,
           secure: proxyTarget.startsWith('https'),
+          timeout: 0,
+          proxyTimeout: 0,
         },
       },
     },

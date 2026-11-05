@@ -1,6 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const CameraVideo = require('../models/CameraVideo');
+const { emitCameraVideoUpdate, emitCameraVideoSerialized, emitCameraVideoDeleted } = require('../realtime');
 
 const router = express.Router();
 
@@ -17,6 +18,7 @@ const upload = multer({
 });
 
 router.post('/', upload.single('video'), async (req, res) => {
+  const t0 = Date.now();
   try {
     if (!req.file || !req.file.buffer?.length) {
       return res.status(400).json({ success: false, message: 'video file is required' });
@@ -32,6 +34,9 @@ router.post('/', upload.single('video'), async (req, res) => {
       durationSec: req.body.durationSec,
     });
 
+    emitCameraVideoUpdate(doc);
+    const ms = Date.now() - t0;
+    if (ms > 5000) console.warn(`[CameraVideo] slow POST ${ms}ms ${doc.machineId}/${doc.cameraChannel}`);
     return res.status(201).json({
       success: true,
       message: 'Video accepted',
@@ -51,6 +56,9 @@ router.post('/compact', async (req, res) => {
     const machineId = String(req.query.machineId || req.body?.machineId || '').trim() || undefined;
     const force = req.query.force === '1' || req.body?.force === true;
     const merged = await CameraVideo.compactSlots({ machineId, force });
+    for (const row of merged) {
+      emitCameraVideoSerialized(row);
+    }
     return res.json({
       success: true,
       message: merged.length ? `Merged ${merged.length} channel slot(s)` : 'Nothing to merge',
@@ -91,7 +99,8 @@ router.get('/:id/stream', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Video not found' });
     }
 
-    const file = await CameraVideo.getGridFsFile(doc.gridFsId);
+    const pinnedGridFsId = doc.gridFsId;
+    const file = await CameraVideo.getGridFsFile(pinnedGridFsId);
     if (!file) {
       return res.status(404).json({ success: false, message: 'Video file not found' });
     }
@@ -117,7 +126,7 @@ router.get('/:id/stream', async (req, res) => {
         'Content-Type': contentType,
         'Cache-Control': 'no-store, max-age=0',
       });
-      const stream = CameraVideo.openDownloadStream(doc.gridFsId, {
+      const stream = CameraVideo.openDownloadStream(pinnedGridFsId, {
         start,
         end: chunkEnd,
       });
@@ -134,7 +143,7 @@ router.get('/:id/stream', async (req, res) => {
       'Accept-Ranges': 'bytes',
       'Cache-Control': 'no-store, max-age=0',
     });
-    const stream = CameraVideo.openDownloadStream(doc.gridFsId);
+    const stream = CameraVideo.openDownloadStream(pinnedGridFsId);
     stream.on('error', () => {
       if (!res.headersSent) res.status(500).end();
     });
@@ -157,6 +166,7 @@ router.delete('/:id', async (req, res) => {
     if (!removed) {
       return res.status(404).json({ success: false, message: 'Video not found' });
     }
+    emitCameraVideoDeleted({ id: String(removed._id), machineId: removed.machineId });
     return res.json({ success: true, message: 'Video deleted' });
   } catch (error) {
     console.error('DELETE /api/camera-videos/:id:', error.message);

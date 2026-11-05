@@ -1437,11 +1437,33 @@ body {
   background: #fafbfc;
 }
 
+.hmi32-video-item__player-wrap {
+  width: 100%;
+}
+
 .hmi32-video-item__player {
   width: 100%;
   aspect-ratio: 16 / 9;
   background: #000;
   display: block;
+}
+
+.hmi32-video-item__load-btn {
+  border: none;
+  cursor: pointer;
+  color: #e5e7eb;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.hmi32-video-item__load-btn:hover {
+  background: #111827;
+  color: #fff;
+}
+
+.hmi32-video-item__placeholder {
+  min-height: 0;
+  background: linear-gradient(180deg, #1f2937 0%, #111827 100%);
 }
 
 .hmi32-video-item__meta {

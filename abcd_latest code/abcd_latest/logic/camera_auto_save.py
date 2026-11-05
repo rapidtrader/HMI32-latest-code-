@@ -8,6 +8,9 @@ from typing import Callable, List, Optional, Tuple
 from logic.camera_video_upload import save_clip_to_json_index
 from logic.camera_videos_store import sync_pending_to_database
 
+_upload_slots = threading.Semaphore(
+    max(1, min(4, int(os.environ.get("CAMERA_VIDEO_UPLOAD_CONCURRENCY", "2"))))
+)
 
 def kick_sync_background(limit: int = 16) -> None:
     def _run():
@@ -53,13 +56,14 @@ def push_clip_to_server(
     stamp = title or f"{ch} clip"
 
     if direct:
-        ok, code, text = post_camera_video(
-            file_path,
-            machine_id=mid,
-            title=stamp,
-            camera_channel=ch,
-            duration_sec=duration_sec,
-        )
+        with _upload_slots:
+            ok, code, text = post_camera_video(
+                file_path,
+                machine_id=mid,
+                title=stamp,
+                camera_channel=ch,
+                duration_sec=duration_sec,
+            )
         if ok:
             if delete_after:
                 try:

@@ -1,6 +1,5 @@
-# Snippet for /etc/nginx/sites-available/hmi — inside server { } for hmi.dynacleanindustries.com
-# Camera clip POST can be slow behind nginx; async merge on Node should return in ~1s.
-# Still raise timeouts for /api/camera-videos until deploy is verified.
+# Camera clip POST — MUST be before generic /api/ or nginx uses 60s default → 504 while merge runs.
+# Async merge on Node returns in ~1–2s; merge continues in background.
 
 location /api/camera-videos {
     proxy_pass http://127.0.0.1:4002;
@@ -12,4 +11,14 @@ location /api/camera-videos {
     proxy_send_timeout 300s;
     proxy_read_timeout 300s;
     client_max_body_size 200M;
+}
+
+# Optional: same timeouts for Socket.IO long polling
+location /socket.io/ {
+    proxy_pass http://127.0.0.1:4002;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_read_timeout 86400s;
 }

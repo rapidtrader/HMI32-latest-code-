@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { ObjectId } = require('mongodb');
 const { getDatabase } = require('../mongodb');
@@ -9,7 +10,24 @@ const PENDING_COLLECTION = 'camera_video_pending';
 const BUCKET_NAME = 'camera_videos_fs';
 const compactCooldownMs = 90 * 1000;
 const compactCooldown = new Map();
-const mergeDebounceMs = 1500;
+const mergeDebounceMs = Math.max(
+  200,
+  Number(process.env.CAMERA_VIDEO_MERGE_DEBOUNCE_MS) || 450
+);
+const mergeBatchSize = Math.min(
+  32,
+  Math.max(1, Number(process.env.CAMERA_VIDEO_MERGE_BATCH) || 10)
+);
+const faststartMaxBytes =
+  Math.max(5, Number(process.env.CAMERA_VIDEO_FASTSTART_MAX_MB) || 32) * 1024 * 1024;
+const rollingCacheDir =
+  process.env.CAMERA_VIDEO_CACHE_DIR || path.join(os.tmpdir(), 'hmi32-roll-cache');
+const rollingCacheMeta = new Map();
+const gridFsDeleteTimers = new Map();
+const gridFsDeleteDelayMs = Math.max(
+  60_000,
+  Number(process.env.CAMERA_VIDEO_GRIDFS_DELETE_DELAY_MS) || 180_000
+);
 const mergeDebounceTimers = new Map();
 const mergeRunning = new Set();
 
@@ -45,6 +63,71 @@ class CameraVideo {
     await safe(() => col.createIndex({ gridFsId: 1 }, { unique: true }));
     const pend = db.collection(PENDING_COLLECTION);
     await safe(() => pend.createIndex({ machineId: 1, cameraChannel: 1, created_at: 1 }));
+  }
+
+  static rollingCacheKey(machineId, channel) {
+    const mid = String(machineId || '').trim();
+    const ch = this.normalizeChannel(channel);
+    return `${mid}|${ch}`;
+  }
+
+  static ensureRollingCacheDir() {
+    fs.mkdirSync(rollingCacheDir, { recursive: true });
+  }
+
+  static async materializeRollingMain(cacheKey, gridFsId) {
+    const id = String(gridFsId);
+    const hit = rollingCacheMeta.get(cacheKey);
+    if (hit && hit.gridFsId === id && fs.existsSync(hit.filePath)) {
+      return hit.filePath;
+    }
+    this.ensureRollingCacheDir();
+    const safe = cacheKey.replace(/[^a-zA-Z0-9._-]+/g, '_');
+    const cachePath = path.join(rollingCacheDir, `${safe}.mp4`);
+    await this.downloadGridFsToFile(gridFsId, cachePath);
+    rollingCacheMeta.set(cacheKey, { gridFsId: id, filePath: cachePath });
+    return cachePath;
+  }
+
+  static rememberRollingMain(cacheKey, gridFsId, mergedPath) {
+    this.ensureRollingCacheDir();
+    const safe = cacheKey.replace(/[^a-zA-Z0-9._-]+/g, '_');
+    const cachePath = path.join(rollingCacheDir, `${safe}.mp4`);
+    if (path.resolve(mergedPath) !== path.resolve(cachePath)) {
+      fs.copyFileSync(mergedPath, cachePath);
+    }
+    rollingCacheMeta.set(cacheKey, { gridFsId: String(gridFsId), filePath: cachePath });
+  }
+
+  static dropRollingCache(cacheKey) {
+    const hit = rollingCacheMeta.get(cacheKey);
+    if (hit) {
+      try {
+        fs.unlinkSync(hit.filePath);
+      } catch {
+        /* ignore */
+      }
+      rollingCacheMeta.delete(cacheKey);
+    }
+  }
+
+  /** Keep old GridFS blobs during active HTTP streams (avoid ECONNRESET mid-play). */
+  static scheduleGridFsDelete(gridFsId) {
+    if (!gridFsId) return;
+    const id = String(gridFsId);
+    const prev = gridFsDeleteTimers.get(id);
+    if (prev) clearTimeout(prev);
+    const timer = setTimeout(() => {
+      gridFsDeleteTimers.delete(id);
+      try {
+        getBucket()
+          .delete(new ObjectId(id))
+          .catch(() => {});
+      } catch {
+        /* invalid id */
+      }
+    }, gridFsDeleteDelayMs);
+    gridFsDeleteTimers.set(id, timer);
   }
 
   static uploadBufferToGridFs(buffer, safeName, mimeType, metadata) {
@@ -88,7 +171,18 @@ class CameraVideo {
     }
     mergeRunning.add(key);
     try {
-      await withChannelLock(key, () => this.flushPendingSegments(mid, ch));
+      let loops = 0;
+      while (loops < 24) {
+        loops += 1;
+        const doc = await withChannelLock(key, () => this.flushPendingSegments(mid, ch));
+        if (doc) this.notifyRealtime(doc);
+        const db = getDatabase();
+        const left = await db.collection(PENDING_COLLECTION).countDocuments({
+          machineId: mid,
+          cameraChannel: ch,
+        });
+        if (!left) break;
+      }
     } finally {
       mergeRunning.delete(key);
     }
@@ -127,41 +221,54 @@ class CameraVideo {
       const ins = await col.insertOne(meta);
       existing = { ...meta, _id: ins.insertedId };
       await pendCol.deleteOne({ _id: first._id });
+      this.notifyRealtime(existing);
     }
 
     if (!pending.length) return existing;
 
-    const addDur = pending.reduce((acc, p) => acc + (Number(p.durationSec) || 10), 0);
+    const batch = pending.slice(0, mergeBatchSize);
+    const addDur = batch.reduce((acc, p) => acc + (Number(p.durationSec) || 10), 0);
     const prevDur = Number(existing.durationSec) || 0;
+    const cacheKey = this.rollingCacheKey(mid, ch);
 
     const merged = await withTempDir(async (dir) => {
       const paths = [];
-      const mainPath = path.join(dir, 'main.mp4');
-      await this.downloadGridFsToFile(existing.gridFsId, mainPath);
+      const mainPath = await this.materializeRollingMain(cacheKey, existing.gridFsId);
       if (fs.statSync(mainPath).size > 500) paths.push(mainPath);
-      for (let i = 0; i < pending.length; i += 1) {
-        const pth = path.join(dir, `pending_${i}.mp4`);
-        await this.downloadGridFsToFile(pending[i].gridFsId, pth);
-        if (fs.statSync(pth).size > 500) paths.push(pth);
+
+      const segPaths = await Promise.all(
+        batch.map(async (seg, i) => {
+          const pth = path.join(dir, `pending_${i}.mp4`);
+          await this.downloadGridFsToFile(seg.gridFsId, pth);
+          return pth;
+        })
+      );
+      for (const pth of segPaths) {
+        if (fs.existsSync(pth) && fs.statSync(pth).size > 500) paths.push(pth);
       }
       if (paths.length === 0) return null;
       const outPath = path.join(dir, `${ch}_rolling.mp4`);
-      await concatVideoFiles(paths, outPath);
-      return this.uploadFileToGridFs(outPath, `${ch}_rolling.mp4`, existing.mimeType || 'video/mp4', {
+      const estBytes = paths.reduce((acc, p) => acc + fs.statSync(p).size, 0);
+      await concatVideoFiles(paths, outPath, { faststart: estBytes <= faststartMaxBytes });
+      const uploaded = await this.uploadFileToGridFs(outPath, `${ch}_rolling.mp4`, existing.mimeType || 'video/mp4', {
         machineId: mid,
         title: ch,
         cameraChannel: ch,
       });
+      this.rememberRollingMain(cacheKey, uploaded.gridFsId, outPath);
+      return uploaded;
     });
 
     if (!merged) return existing;
 
+    const totalDur = this.estimateDurationSec(merged.sizeBytes, prevDur + addDur);
+
     try {
-      await bucket.delete(existing.gridFsId);
+      this.scheduleGridFsDelete(existing.gridFsId);
     } catch {
       /* ignore */
     }
-    for (const p of pending) {
+    for (const p of batch) {
       try {
         await bucket.delete(p.gridFsId);
       } catch {
@@ -176,13 +283,15 @@ class CameraVideo {
         $set: {
           filename: `${ch}_rolling.mp4`,
           sizeBytes: merged.sizeBytes,
-          durationSec: prevDur + addDur,
+          durationSec: totalDur,
           gridFsId: merged.gridFsId,
           updated_at: now,
         },
       }
     );
-    return col.findOne({ _id: existing._id });
+    const updated = await col.findOne({ _id: existing._id });
+    this.notifyRealtime(updated);
+    return updated;
   }
 
   static normalizeChannel(raw) {
@@ -194,8 +303,20 @@ class CameraVideo {
     return s;
   }
 
+  static estimateDurationSec(sizeBytes, reportedSec) {
+    const bytes = Number(sizeBytes) || 0;
+    const reported = Number(reportedSec);
+    if (bytes < 500) return Number.isFinite(reported) ? Math.min(reported, 15) : null;
+    // Pi preview ~30–50 KB per 10s clip
+    const fromSize = Math.max(5, Math.round(bytes / 3500));
+    if (!Number.isFinite(reported) || reported <= 0) return fromSize;
+    if (reported > fromSize * 4) return fromSize;
+    return reported;
+  }
+
   static serialize(doc) {
     if (!doc) return null;
+    const sizeBytes = doc.sizeBytes || 0;
     return {
       id: String(doc._id),
       machineId: doc.machineId || '',
@@ -203,8 +324,8 @@ class CameraVideo {
       cameraChannel: doc.cameraChannel ?? null,
       filename: doc.filename || '',
       mimeType: doc.mimeType || 'video/webm',
-      sizeBytes: doc.sizeBytes || 0,
-      durationSec: doc.durationSec ?? null,
+      sizeBytes,
+      durationSec: this.estimateDurationSec(sizeBytes, doc.durationSec),
       created_at: doc.created_at,
       updated_at: doc.updated_at || doc.created_at,
     };
@@ -247,13 +368,44 @@ class CameraVideo {
     const keep = rows[0];
     for (const dup of rows.slice(1)) {
       try {
-        await bucket.delete(dup.gridFsId);
+        this.scheduleGridFsDelete(dup.gridFsId);
       } catch {
         /* missing file */
       }
       await col.deleteOne({ _id: dup._id });
     }
     return keep;
+  }
+
+  static async appendPendingSegment({
+    buffer,
+    safeName,
+    mime,
+    mid,
+    ch,
+    segDur,
+    displayTitle,
+    existing,
+  }) {
+    const db = getDatabase();
+    const now = new Date();
+    const uploaded = await this.uploadBufferToGridFs(buffer, safeName, mime, {
+      machineId: mid,
+      title: displayTitle,
+      cameraChannel: ch,
+      pending: true,
+    });
+    await db.collection(PENDING_COLLECTION).insertOne({
+      machineId: mid,
+      cameraChannel: ch,
+      gridFsId: uploaded.gridFsId,
+      sizeBytes: uploaded.sizeBytes,
+      durationSec: segDur,
+      mimeType: mime,
+      created_at: now,
+    });
+    this.scheduleBackgroundMerge(mid, ch);
+    return existing;
   }
 
   static async upsertFromBuffer({
@@ -311,6 +463,23 @@ class CameraVideo {
       return { ...meta, _id: result.insertedId };
     }
 
+    const asyncMerge = process.env.CAMERA_VIDEO_ASYNC_MERGE !== '0';
+    if (asyncMerge) {
+      const existingFast = await col.findOne({ machineId: mid, cameraChannel: ch });
+      if (existingFast) {
+        return this.appendPendingSegment({
+          buffer,
+          safeName,
+          mime,
+          mid,
+          ch,
+          segDur,
+          displayTitle,
+          existing: existingFast,
+        });
+      }
+    }
+
     return withChannelLock(`${mid}|${ch}`, async () => {
       let existing = await this.removeDuplicateChannelDocs(col, bucket, mid, ch);
 
@@ -332,36 +501,28 @@ class CameraVideo {
         return { ...meta, _id: result.insertedId };
       }
 
-      const asyncMerge = process.env.CAMERA_VIDEO_ASYNC_MERGE !== '0';
       if (asyncMerge) {
-        const uploaded = await this.uploadBufferToGridFs(buffer, safeName, mime, {
-          machineId: mid,
-          title: displayTitle,
-          cameraChannel: ch,
-          pending: true,
+        return this.appendPendingSegment({
+          buffer,
+          safeName,
+          mime,
+          mid,
+          ch,
+          segDur,
+          displayTitle,
+          existing,
         });
-        await db.collection(PENDING_COLLECTION).insertOne({
-          machineId: mid,
-          cameraChannel: ch,
-          gridFsId: uploaded.gridFsId,
-          sizeBytes: uploaded.sizeBytes,
-          durationSec: segDur,
-          mimeType: mime,
-          created_at: now,
-        });
-        this.scheduleBackgroundMerge(mid, ch);
-        return existing;
       }
 
       const prevDur = Number(existing.durationSec) || 0;
       const addDur = segDur != null ? segDur : 10;
-      const totalDur = prevDur + addDur;
+      const reportedDur = prevDur + addDur;
 
       const replaceWithLatestSegment = async (reason) => {
         console.warn(`[CameraVideo] merge skip ${mid}/${ch}: ${reason}`);
         const { gridFsId, sizeBytes } = await uploadBufferOnly();
         try {
-          await bucket.delete(existing.gridFsId);
+          this.scheduleGridFsDelete(existing.gridFsId);
         } catch {
           /* ignore */
         }
@@ -395,7 +556,7 @@ class CameraVideo {
         });
 
         try {
-          await bucket.delete(existing.gridFsId);
+          this.scheduleGridFsDelete(existing.gridFsId);
         } catch {
           /* old file may be missing */
         }
@@ -406,7 +567,7 @@ class CameraVideo {
           filename: `${ch}_rolling.mp4`,
           mimeType: mime,
           sizeBytes: merged.sizeBytes,
-          durationSec: totalDur,
+          durationSec: this.estimateDurationSec(merged.sizeBytes, reportedDur),
           gridFsId: merged.gridFsId,
           updated_at: now,
         };
@@ -548,7 +709,7 @@ class CameraVideo {
       for (const seg of sorted) {
         if (String(seg._id) !== String(keep._id)) {
           try {
-            await bucket.delete(seg.gridFsId);
+            this.scheduleGridFsDelete(seg.gridFsId);
           } catch {
             /* ignore */
           }
@@ -556,7 +717,7 @@ class CameraVideo {
         }
       }
       try {
-        await bucket.delete(keep.gridFsId);
+        this.scheduleGridFsDelete(keep.gridFsId);
       } catch {
         /* ignore */
       }
@@ -572,7 +733,9 @@ class CameraVideo {
         updated_at: now,
       };
       await col.updateOne({ _id: keep._id }, { $set: meta });
-      return col.findOne({ _id: keep._id });
+      const doc = await col.findOne({ _id: keep._id });
+      this.notifyRealtime(doc);
+      return doc;
     });
   }
 
@@ -643,12 +806,28 @@ class CameraVideo {
 
   static async deleteById(id) {
     const doc = await this.findById(id);
-    if (!doc) return false;
+    if (!doc) return null;
     const bucket = getBucket();
-    await bucket.delete(doc.gridFsId);
+    try {
+      await bucket.delete(doc.gridFsId);
+    } catch {
+      /* missing gridfs */
+    }
     const db = getDatabase();
     await db.collection(COLLECTION).deleteOne({ _id: doc._id });
-    return true;
+    if (doc.cameraChannel) {
+      this.dropRollingCache(this.rollingCacheKey(doc.machineId, doc.cameraChannel));
+    }
+    return doc;
+  }
+
+  static notifyRealtime(doc) {
+    if (!doc) return;
+    try {
+      require('../realtime').emitCameraVideoUpdate(doc);
+    } catch {
+      /* socket not ready */
+    }
   }
 }
 

@@ -56,3 +56,22 @@ export function dedupeCameraVideosForDisplay(videos) {
     return channelSortKey(a) - channelSortKey(b);
   });
 }
+
+/** Merge one socket/API video row into a cached list. */
+export function mergeCameraVideoIntoList(videos, video) {
+  if (!video?.id) return dedupeCameraVideosForDisplay(videos);
+  const list = Array.isArray(videos) ? videos : [];
+  const mid = String(video.machineId || '').trim() || 'unknown';
+  const ch = inferCameraChannel(video);
+  const key = ch ? `${mid}|${ch}` : `${mid}|id:${video.id}`;
+  const byKey = new Map();
+  for (const v of list) {
+    const m = String(v?.machineId || '').trim() || 'unknown';
+    const c = inferCameraChannel(v);
+    const k = c ? `${m}|${c}` : `${m}|id:${v?.id}`;
+    byKey.set(k, v);
+  }
+  const prev = byKey.get(key);
+  byKey.set(key, pickBestSlot(prev, ch ? { ...video, cameraChannel: ch } : video));
+  return dedupeCameraVideosForDisplay([...byKey.values()]);
+}

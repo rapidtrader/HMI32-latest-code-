@@ -80,7 +80,7 @@ export function useCameraVideos(machineId, { pausePolling = false } = {}) {
       const raw = Array.isArray(data.data) ? data.data : [];
       return dedupeCameraVideosForDisplay(raw);
     },
-    refetchInterval: pausePolling ? false : 15000,
+    refetchInterval: pausePolling ? false : 30000,
     refetchIntervalInBackground: false,
   });
 }

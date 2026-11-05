@@ -97,8 +97,10 @@ function runFfmpeg(args, timeoutMs = 120000) {
 
 /**
  * Concatenate video files (same codec) into one file. Uses stream copy first, then re-mux.
+ * @param {{ faststart?: boolean }} [options] — skip faststart on live merges (much faster on large files).
  */
-async function concatVideoFiles(inputPaths, outputPath) {
+async function concatVideoFiles(inputPaths, outputPath, options = {}) {
+  const useFaststart = options.faststart !== false;
   const bin = await pickWorkingFfmpeg();
   if (!bin) {
     throw new Error(
@@ -113,7 +115,10 @@ async function concatVideoFiles(inputPaths, outputPath) {
   if (existing.length === 1) {
     const one = existing[0];
     if (path.extname(outputPath).toLowerCase() === '.mp4') {
-      await runFfmpeg(['-y', '-i', one, '-c', 'copy', '-movflags', '+faststart', outputPath]);
+      const args = ['-y', '-i', one, '-c', 'copy'];
+      if (useFaststart) args.push('-movflags', '+faststart');
+      args.push(outputPath);
+      await runFfmpeg(args);
     } else {
       fs.copyFileSync(one, outputPath);
     }
@@ -129,8 +134,14 @@ async function concatVideoFiles(inputPaths, outputPath) {
     .join('\n');
   fs.writeFileSync(listPath, listBody, 'utf8');
 
+  const copyArgs = ['-y', '-f', 'concat', '-safe', '0', '-i', listPath, '-c', 'copy'];
+  if (useFaststart) copyArgs.push('-movflags', '+faststart');
+  copyArgs.push(outputPath);
+
   try {
-    await runFfmpeg([
+    await runFfmpeg(copyArgs);
+  } catch (copyErr) {
+    const transcodeArgs = [
       '-y',
       '-f',
       'concat',
@@ -138,36 +149,18 @@ async function concatVideoFiles(inputPaths, outputPath) {
       '0',
       '-i',
       listPath,
-      '-c',
-      'copy',
-      '-movflags',
-      '+faststart',
-      outputPath,
-    ]);
-  } catch (copyErr) {
-    await runFfmpeg(
-      [
-        '-y',
-        '-f',
-        'concat',
-        '-safe',
-        '0',
-        '-i',
-        listPath,
-        '-c:v',
-        'libx264',
-        '-preset',
-        'veryfast',
-        '-crf',
-        '23',
-        '-c:a',
-        'aac',
-        '-movflags',
-        '+faststart',
-        outputPath,
-      ],
-      180000
-    ).catch(() => {
+      '-c:v',
+      'libx264',
+      '-preset',
+      'ultrafast',
+      '-crf',
+      '23',
+      '-c:a',
+      'aac',
+    ];
+    if (useFaststart) transcodeArgs.push('-movflags', '+faststart');
+    transcodeArgs.push(outputPath);
+    await runFfmpeg(transcodeArgs, 180000).catch(() => {
       throw copyErr;
     });
   } finally {

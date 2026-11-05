@@ -23,7 +23,7 @@ def _tick():
     pending = list_clips("pending")
     if not pending:
         return
-    ok_n, fail_n = sync_pending_to_database(limit=2)
+    ok_n, fail_n = sync_pending_to_database(limit=4)
     if ok_n or fail_n:
         print(f"[CAMERA-VIDEO] Background sync: ok={ok_n} fail={fail_n}")
 

@@ -5,6 +5,7 @@ import {
   deleteCameraVideo,
 } from '../api/client';
 import { useCameraVideos } from '../hooks/useHmi32Queries';
+import { useCameraVideoRealtime } from '../hooks/useCameraVideoRealtime';
 import { channelSortKey, inferCameraChannel } from '../utils/cameraVideoSlots';
 import CameraSlotVideo from './CameraSlotVideo';
 import PageLayout from './PageLayout';
@@ -52,8 +53,10 @@ const CameraVideosPage = () => {
     setPlayingCount((n) => Math.max(0, n + (isPlaying ? 1 : -1)));
   };
 
-  const { data: videosRaw = [], isLoading, error, isFetching } = useCameraVideos(queryMachine, {
-    pausePolling: playingCount > 0,
+  const { live: socketLive } = useCameraVideoRealtime(queryMachine);
+
+  const { data: videosRaw = [], isLoading, error } = useCameraVideos(queryMachine, {
+    pausePolling: playingCount > 0 || socketLive,
   });
   const videos = [...videosRaw].sort((a, b) => channelSortKey(a) - channelSortKey(b));
 
@@ -89,7 +92,11 @@ const CameraVideosPage = () => {
   return (
     <PageLayout
       title="Camera Videos"
-      subtitle="Live recordings from Pi cameras"
+      subtitle={
+        socketLive
+          ? 'Live recordings from Pi cameras · realtime Socket.IO'
+          : 'Live recordings from Pi cameras'
+      }
       loading={isLoading}
       loadingText="Loading videos..."
       error={error}
@@ -97,12 +104,6 @@ const CameraVideosPage = () => {
     >
       {uploadError && <div className="hmi32-alert">{uploadError}</div>}
       {mergeHint && <div className="hmi32-alert">{mergeHint}</div>}
-
-      {isFetching && !isLoading && (
-        <p className="hmi32-video-empty" style={{ paddingTop: 0 }}>
-          Syncing with server…
-        </p>
-      )}
 
       <div className="hmi32-card">
         <div className="hmi32-card__head hmi32-card__head--split">

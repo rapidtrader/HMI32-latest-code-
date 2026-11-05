@@ -8,6 +8,26 @@ export const apiUrl = (path) => {
   return `${rawBase}${p}`;
 };
 
+/**
+ * Dev: connect Socket.IO straight to VITE_DEV_PROXY_TARGET (skip Vite ws proxy → fewer ECONNABORTED logs).
+ * Prod: same-origin (empty url).
+ */
+export function getSocketIoConnectConfig() {
+  const options = {
+    path: '/socket.io',
+    transports: ['polling', 'websocket'],
+    withCredentials: true,
+    reconnectionAttempts: 12,
+  };
+  if (typeof import.meta !== 'undefined' && import.meta.env?.DEV) {
+    const direct = String(
+      import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_DEV_PROXY_TARGET || ''
+    ).replace(/\/$/, '');
+    if (direct) return { url: direct, options };
+  }
+  return { url: undefined, options };
+}
+
 /** Shown in UI — where Camera Videos API calls go */
 export function getApiBaseLabel() {
   if (rawBase) return rawBase;
