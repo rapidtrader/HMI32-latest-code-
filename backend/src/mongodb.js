@@ -1,8 +1,10 @@
 const path = require('path');
 const { MongoClient, ObjectId } = require('mongodb');
 
-// Load once from backend/.env regardless of PM2 cwd quirks
-require('dotenv').config({ path: path.join(__dirname, '../.env') });
+// Load backend/.env only if URI not already set (e.g. test script --gps).
+if (!process.env.MONGODB_URI) {
+  require('dotenv').config({ path: path.join(__dirname, '../.env'), quiet: true });
+}
 
 const mongoConfig = {
   get uri() {
@@ -20,26 +22,29 @@ function mongoHostForLog(uri) {
 }
 
 function buildClientOptions() {
+  const cap = Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS) || 15000;
   const opts = {
-    serverSelectionTimeoutMS: 30000,
-    connectTimeoutMS: 30000,
+    serverSelectionTimeoutMS: cap,
+    connectTimeoutMS: cap,
     retryWrites: true,
     maxPoolSize: 20,
-    // Node 18+ happy-eyeballs + Atlas often causes TLS alert internal error (80)
     autoSelectFamily: false,
   };
-  if (String(mongoConfig.uri).startsWith('mongodb+srv://')) {
+  const uri = mongoConfig.uri;
+  if (String(uri).startsWith('mongodb+srv://')) {
     opts.tls = true;
   }
   return opts;
 }
 
 let client;
-let db;
+let activeUri = null;
 
 const getClient = () => {
-  if (!client) {
-    client = new MongoClient(mongoConfig.uri, buildClientOptions());
+  const uri = activeUri || mongoConfig.uri;
+  if (!client || activeUri !== uri) {
+    client = new MongoClient(uri, buildClientOptions());
+    activeUri = uri;
   }
   return client;
 };
@@ -47,35 +52,54 @@ const getClient = () => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const resetClient = () => {
+  if (client) {
+    client.close().catch(() => {});
+  }
   client = undefined;
+  activeUri = null;
 };
 
+function connectionUriCandidates() {
+  const list = [mongoConfig.uri, process.env.MONGODB_URI_FALLBACK]
+    .map((u) => String(u || '').trim())
+    .filter(Boolean);
+  return [...new Set(list)];
+}
+
 const testConnection = async () => {
-  const host = mongoHostForLog(mongoConfig.uri);
-  console.log(`[db] Connecting to MongoDB (${host}) database=${mongoConfig.database}…`);
+  const uris = connectionUriCandidates();
   let lastErr;
-  for (let attempt = 1; attempt <= 3; attempt += 1) {
-    try {
-      if (attempt > 1) {
-        resetClient();
-        await sleep(2000);
-        console.log(`[db] MongoDB retry ${attempt}/3…`);
+  for (const uri of uris) {
+    activeUri = uri;
+    resetClient();
+    const host = mongoHostForLog(uri);
+    console.log(`[db] Connecting to MongoDB (${host}) database=${mongoConfig.database}…`);
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        if (attempt > 1) {
+          resetClient();
+          activeUri = uri;
+          await sleep(1500);
+          console.log(`[db] MongoDB retry ${attempt}/2…`);
+        }
+        await getClient().connect();
+        await getClient().db(mongoConfig.database).command({ ping: 1 });
+        console.log('MongoDB connected successfully');
+        return true;
+      } catch (error) {
+        lastErr = error;
+        console.error(`[db] attempt ${attempt}/2 failed (${host}):`, error.message);
       }
-      await getClient().connect();
-      await getClient().db(mongoConfig.database).command({ ping: 1 });
-      console.log('MongoDB connected successfully');
-      return true;
-    } catch (error) {
-      lastErr = error;
-      console.error(`[db] MongoDB attempt ${attempt}/3 failed:`, error.message);
     }
   }
   console.error(
-    '[db] Fix: Atlas Network Access (VPS IP); same MONGODB_URI as gps-backend; ' +
-      'or set NODE_OPTIONS=--dns-result-order=ipv4first in PM2'
+    '[db] Fix: bash scripts/sync-env-mongo-from-gps.sh ; Atlas Network Access for VPS IP; ' +
+      'NODE_OPTIONS=--dns-result-order=ipv4first in PM2 ecosystem'
   );
   throw lastErr;
 };
+
+let db;
 
 const ensureIndex = async (collection, spec, options = {}) => {
   try {

@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const { Server: SocketIOServer } = require('socket.io');
-require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+require('dotenv').config({ path: require('path').join(__dirname, '../.env'), quiet: true });
 
 const { testConnection, initializeDatabase } = require('./mongodb');
 const Hmi32Latest = require('./models/Hmi32Latest');
