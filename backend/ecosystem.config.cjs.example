@@ -1,0 +1,22 @@
+/** PM2 — run ONE app from backend folder so .env loads once.
+ *  cp ecosystem.config.cjs.example ecosystem.config.cjs
+ *  pm2 start ecosystem.config.cjs
+ *  pm2 save
+ */
+module.exports = {
+  apps: [
+    {
+      name: 'hmi-backend',
+      cwd: '/var/www/hmi/backend',
+      script: 'src/server.js',
+      instances: 1,
+      exec_mode: 'fork',
+      env: {
+        NODE_ENV: 'production',
+        PORT: 4002,
+        HOST: '0.0.0.0',
+        FFMPEG_PATH: '/usr/bin/ffmpeg',
+      },
+    },
+  ],
+};

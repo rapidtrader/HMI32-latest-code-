@@ -33,6 +33,18 @@ const corsOrigins = [
 
 app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
+
+/** TCP accepts immediately; API returns 503 until Mongo + indexes finish (avoids nginx 502 during boot). */
+let apiReady = false;
+app.use((req, res, next) => {
+  if (apiReady) return next();
+  if (req.path === '/api/health') return next();
+  if (req.path.startsWith('/api/')) {
+    return res.status(503).json({ success: false, message: 'Server is starting — retry in a few seconds' });
+  }
+  return next();
+});
+
 app.use('/api/camera-videos', cameraVideosRouter);
 
 const io = new SocketIOServer(httpServer, {
@@ -178,7 +190,11 @@ io.on('connection', (socket) => {
 });
 
 app.get('/api/health', (_req, res) => {
-  res.json({ success: true, service: 'hmi32-backend' });
+  res.status(apiReady ? 200 : 503).json({
+    success: apiReady,
+    service: 'hmi32-backend',
+    ready: apiReady,
+  });
 });
 
 app.get('/api/auth/signup-available', async (_req, res) => {
@@ -602,6 +618,22 @@ const installSpaFallback = () => {
 installSpaFallback();
 
 const startServer = async () => {
+  httpServer.listen(PORT, HOST, () => {
+    const dbName = process.env.MONGODB_DB_NAME || 'gpsDB';
+    const os = require('os');
+    const lanIps = Object.values(os.networkInterfaces())
+      .flat()
+      .filter((n) => n && n.family === 'IPv4' && !n.internal)
+      .map((n) => n.address);
+
+    console.log(`HMI32 backend listening on http://${HOST}:${PORT} (LAN + localhost)`);
+    if (lanIps.length) {
+      console.log('[network] Pi/backend.json should use one of these URLs:');
+      lanIps.forEach((ip) => console.log(`  http://${ip}:${PORT}`));
+    }
+    console.log(`[db] Target database: ${dbName}`);
+  });
+
   try {
     await testConnection();
     await initializeDatabase();
@@ -609,25 +641,10 @@ const startServer = async () => {
     await RuntimeData.ensureIndexes().catch((e) => console.warn('RuntimeData index warn:', e.message));
     await CameraVideo.ensureIndexes().catch((e) => console.warn('CameraVideo index warn:', e.message));
     await verifyFfmpegAtStartup().catch(() => {});
-
-    httpServer.listen(PORT, HOST, () => {
-      const dbName = process.env.MONGODB_DB_NAME || 'gpsDB';
-      const os = require('os');
-      const lanIps = Object.values(os.networkInterfaces())
-        .flat()
-        .filter((n) => n && n.family === 'IPv4' && !n.internal)
-        .map((n) => n.address);
-
-      console.log(`HMI32 backend listening on http://${HOST}:${PORT} (LAN + localhost)`);
-      if (lanIps.length) {
-        console.log('[network] Pi/backend.json should use one of these URLs:');
-        lanIps.forEach((ip) => console.log(`  http://${ip}:${PORT}`));
-      }
-      console.log(`[db] Saving directly to MONGODB_URI (database: ${dbName})`);
-    });
+    apiReady = true;
+    console.log('[api] Ready — accepting /api requests');
   } catch (error) {
-    console.error('Failed to start server:', error.message);
-    process.exit(1);
+    console.error('Failed to initialize API (still listening on port for debug):', error.message);
   }
 };
 

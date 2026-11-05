@@ -61,26 +61,18 @@ const CameraVideosPage = () => {
     checkCameraVideosApi().then(setApiCheck);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    setMergeHint('Merging old segments into one recording per channel…');
-    compactCameraVideos(queryMachine, { force: true })
-      .then(() => {
-        if (!cancelled) {
-          setMergeHint('');
-          queryClient.invalidateQueries({ queryKey: ['hmi32', 'camera-videos'] });
-        }
-      })
-      .catch((e) => {
-        if (!cancelled) {
-          setMergeHint('');
-          setUploadError(e.message || 'Could not merge old clips on server');
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [queryMachine, queryClient]);
+  const runMergeOldClips = async () => {
+    setUploadError('');
+    setMergeHint('Merging old segments (may take 1–2 min)…');
+    try {
+      await compactCameraVideos(queryMachine, { force: true });
+      setMergeHint('');
+      refresh();
+    } catch (e) {
+      setMergeHint('');
+      setUploadError(e.message || 'Could not merge old clips on server');
+    }
+  };
 
   const onDelete = async (id) => {
     if (!window.confirm('Delete this video from database?')) return;
@@ -203,6 +195,9 @@ const CameraVideosPage = () => {
               </option>
             ))}
           </select>
+          <button type="button" className="hmi32-btn hmi32-btn--secondary" onClick={runMergeOldClips}>
+            Merge old clips
+          </button>
         </div>
 
         {videos.length === 0 ? (

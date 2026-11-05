@@ -71,8 +71,18 @@ export const AuthProvider = ({ children }) => {
           return;
         }
 
-        // Do NOT logout on 401/network — refresh must keep /app/* session.
-        // Token stays until client expiry or explicit logout.
+        // Server rejected token (wrong secret, revoked, etc.) — clear stale session.
+        if (response.status === 401 || response.status === 403) {
+          clearStoredAuth();
+          if (!cancelled) {
+            setToken('');
+            setUsername('');
+            setIsAuthenticated(false);
+          }
+          return;
+        }
+
+        // Network / 5xx — keep local session until JWT exp or logout.
       } catch {
         /* keep session */
       }

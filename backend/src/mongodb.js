@@ -6,7 +6,10 @@ const mongoConfig = {
   database: process.env.MONGODB_DB_NAME || 'gpsDB',
 };
 
-const client = new MongoClient(mongoConfig.uri);
+const client = new MongoClient(mongoConfig.uri, {
+  serverSelectionTimeoutMS: 15000,
+  connectTimeoutMS: 15000,
+});
 let db;
 
 const testConnection = async () => {

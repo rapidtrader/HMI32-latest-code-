@@ -20,16 +20,25 @@ class CameraVideo {
   static async ensureIndexes() {
     const db = getDatabase();
     const col = db.collection(COLLECTION);
-    await col.createIndex({ machineId: 1, created_at: -1 });
-    await col.createIndex({ created_at: -1 });
-    await col.createIndex(
-      { machineId: 1, cameraChannel: 1 },
-      {
-        unique: true,
-        partialFilterExpression: { cameraChannel: { $type: 'string' } },
+    const safe = async (fn) => {
+      try {
+        await fn();
+      } catch (e) {
+        console.warn('[CameraVideo] index:', e.message);
       }
+    };
+    await safe(() => col.createIndex({ machineId: 1, created_at: -1 }));
+    await safe(() => col.createIndex({ created_at: -1 }));
+    await safe(() =>
+      col.createIndex(
+        { machineId: 1, cameraChannel: 1 },
+        {
+          unique: true,
+          partialFilterExpression: { cameraChannel: { $type: 'string' } },
+        }
+      )
     );
-    await col.createIndex({ gridFsId: 1 }, { unique: true });
+    await safe(() => col.createIndex({ gridFsId: 1 }, { unique: true }));
   }
 
   static normalizeChannel(raw) {
@@ -422,7 +431,7 @@ class CameraVideo {
     return merged;
   }
 
-  static async findForDisplay({ machineId, limit = 50, autoCompact = true } = {}) {
+  static async findForDisplay({ machineId, limit = 50, autoCompact = false } = {}) {
     if (autoCompact) {
       await this.compactSlots({ machineId }).catch((e) => {
         console.warn('[CameraVideo] autoCompact:', e.message);
