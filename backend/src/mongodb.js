@@ -25,6 +25,8 @@ function buildClientOptions() {
     connectTimeoutMS: 30000,
     retryWrites: true,
     maxPoolSize: 20,
+    // Node 18+ happy-eyeballs + Atlas often causes TLS alert internal error (80)
+    autoSelectFamily: false,
   };
   if (String(mongoConfig.uri).startsWith('mongodb+srv://')) {
     opts.tls = true;
@@ -42,22 +44,37 @@ const getClient = () => {
   return client;
 };
 
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const resetClient = () => {
+  client = undefined;
+};
+
 const testConnection = async () => {
   const host = mongoHostForLog(mongoConfig.uri);
   console.log(`[db] Connecting to MongoDB (${host}) database=${mongoConfig.database}…`);
-  try {
-    await getClient().connect();
-    await getClient().db(mongoConfig.database).command({ ping: 1 });
-    console.log('MongoDB connected successfully');
-    return true;
-  } catch (error) {
-    console.error('[db] MongoDB connection failed:', error.message);
-    console.error(
-      '[db] Fix: MongoDB Atlas → Network Access → allow this VPS public IP; ' +
-        'verify MONGODB_URI in backend/.env (same cluster as gps-backend if shared)'
-    );
-    throw error;
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      if (attempt > 1) {
+        resetClient();
+        await sleep(2000);
+        console.log(`[db] MongoDB retry ${attempt}/3…`);
+      }
+      await getClient().connect();
+      await getClient().db(mongoConfig.database).command({ ping: 1 });
+      console.log('MongoDB connected successfully');
+      return true;
+    } catch (error) {
+      lastErr = error;
+      console.error(`[db] MongoDB attempt ${attempt}/3 failed:`, error.message);
+    }
   }
+  console.error(
+    '[db] Fix: Atlas Network Access (VPS IP); same MONGODB_URI as gps-backend; ' +
+      'or set NODE_OPTIONS=--dns-result-order=ipv4first in PM2'
+  );
+  throw lastErr;
 };
 
 const ensureIndex = async (collection, spec, options = {}) => {

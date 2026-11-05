@@ -12,6 +12,7 @@ module.exports = {
       min_uptime: '10s',
       env: {
         NODE_ENV: 'production',
+        NODE_OPTIONS: '--dns-result-order=ipv4first',
         PORT: 4002,
         HOST: '0.0.0.0',
         FFMPEG_PATH: '/usr/bin/ffmpeg',
