@@ -220,6 +220,12 @@ class CameraVideo {
         });
         if (!left) break;
       }
+    } catch (e) {
+      const msg = e?.message || String(e);
+      console.warn(`[CameraVideo] background merge ${key}:`, msg);
+      if (/timed out|MongoNetwork|ECONNRESET|ETIMEDOUT/i.test(msg)) {
+        setTimeout(() => this.scheduleBackgroundMerge(mid, ch), 20000);
+      }
     } finally {
       mergeRunning.delete(key);
     }

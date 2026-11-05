@@ -31,10 +31,12 @@ function mongoHostForLog(uri) {
 
 function buildClientOptions() {
   const cap = Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS) || 20000;
+  const socketMs = Number(process.env.MONGODB_SOCKET_TIMEOUT_MS) || 600000;
   const opts = {
     serverSelectionTimeoutMS: cap,
     connectTimeoutMS: cap,
-    socketTimeoutMS: 45000,
+    socketTimeoutMS: socketMs,
+    maxIdleTimeMS: Math.min(socketMs, 120000),
     retryWrites: true,
     maxPoolSize: 30,
     minPoolSize: 2,
