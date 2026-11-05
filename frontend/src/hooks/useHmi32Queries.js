@@ -82,5 +82,7 @@ export function useCameraVideos(machineId, { pausePolling = false } = {}) {
     },
     refetchInterval: pausePolling ? false : 30000,
     refetchIntervalInBackground: false,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 }

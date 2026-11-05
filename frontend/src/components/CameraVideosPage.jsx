@@ -40,6 +40,9 @@ const displayTitle = (v) => {
   return v?.title || v?.filename || 'Camera';
 };
 
+/** Only block empty slots — small but growing files should still play. */
+const isEmptySlot = (v) => (Number(v.sizeBytes) || 0) < 500;
+
 const CameraVideosPage = () => {
   const queryClient = useQueryClient();
   const [filterMachine, setFilterMachine] = useState('');
@@ -56,7 +59,7 @@ const CameraVideosPage = () => {
   const { live: socketLive } = useCameraVideoRealtime(queryMachine);
 
   const { data: videosRaw = [], isLoading, error } = useCameraVideos(queryMachine, {
-    pausePolling: playingCount > 0 || socketLive,
+    pausePolling: socketLive,
   });
   const videos = [...videosRaw].sort((a, b) => channelSortKey(a) - channelSortKey(b));
 
@@ -137,10 +140,10 @@ const CameraVideosPage = () => {
         ) : (
           <div className="hmi32-video-grid">
             {videos.map((v) => {
-              const playable = (Number(v.sizeBytes) || 0) >= 500;
+              const empty = isEmptySlot(v);
               return (
               <article key={v.id} className="hmi32-video-item">
-                {playable ? (
+                {!empty ? (
                   <CameraSlotVideo video={v} onPlayingChange={onVideoPlayingChange} />
                 ) : (
                   <div className="hmi32-video-item__player hmi32-video-empty" style={{ minHeight: 120 }}>

@@ -10,7 +10,15 @@ let workingFfmpegBin = null;
 
 function resolveFfmpegCandidates() {
   const fromEnv = process.env.FFMPEG_PATH ? String(process.env.FFMPEG_PATH).trim() : '';
-  return [...new Set([fromEnv, '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', 'ffmpeg'].filter(Boolean))];
+  const list = [fromEnv, '/usr/bin/ffmpeg', '/usr/local/bin/ffmpeg', 'ffmpeg'];
+  if (process.platform === 'win32') {
+    list.push(
+      'C:\\ffmpeg\\bin\\ffmpeg.exe',
+      'C:\\Program Files\\ffmpeg\\bin\\ffmpeg.exe',
+      'ffmpeg.exe'
+    );
+  }
+  return [...new Set(list.filter(Boolean))];
 }
 
 function probeFfmpegBinary(bin) {
@@ -55,9 +63,11 @@ async function verifyFfmpegAtStartup() {
     return true;
   }
   console.warn(
-    '[ffmpeg] Clip merge disabled — install/fix ffmpeg on server:\n' +
-      '  sudo apt install -y ffmpeg liblapack3 libopenblas0\n' +
-      '  export FFMPEG_PATH=/usr/bin/ffmpeg  (PM2 ecosystem env)\n' +
+    '[ffmpeg] Clip merge disabled — install ffmpeg and set FFMPEG_PATH in backend/.env\n' +
+      (process.platform === 'win32'
+        ? '  Windows: winget install Gyan.FFmpeg  then FFMPEG_PATH=C:\\ffmpeg\\bin\\ffmpeg.exe\n'
+        : '  Linux: sudo apt install -y ffmpeg liblapack3 libopenblas0\n' +
+          '  export FFMPEG_PATH=/usr/bin/ffmpeg  (PM2 ecosystem env)\n') +
       '  See backend/scripts/install-ffmpeg-debian.sh'
   );
   return false;

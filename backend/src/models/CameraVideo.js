@@ -19,7 +19,7 @@ const mergeBatchSize = Math.min(
   Math.max(1, Number(process.env.CAMERA_VIDEO_MERGE_BATCH) || 10)
 );
 const faststartMaxBytes =
-  Math.max(5, Number(process.env.CAMERA_VIDEO_FASTSTART_MAX_MB) || 32) * 1024 * 1024;
+  Math.max(5, Number(process.env.CAMERA_VIDEO_FASTSTART_MAX_MB) || 64) * 1024 * 1024;
 const rollingCacheDir =
   process.env.CAMERA_VIDEO_CACHE_DIR || path.join(os.tmpdir(), 'hmi32-roll-cache');
 const rollingCacheMeta = new Map();
@@ -39,6 +39,35 @@ const getBucket = () => {
 class CameraVideo {
   static collection = COLLECTION;
 
+  static async dedupeAllChannelSlots() {
+    const db = getDatabase();
+    const col = db.collection(COLLECTION);
+    const bucket = getBucket();
+    const dupGroups = await col
+      .aggregate([
+        { $match: { cameraChannel: { $exists: true, $type: 'string' } } },
+        {
+          $group: {
+            _id: { machineId: '$machineId', cameraChannel: '$cameraChannel' },
+            n: { $sum: 1 },
+          },
+        },
+        { $match: { n: { $gt: 1 } } },
+      ])
+      .toArray();
+
+    let removed = 0;
+    for (const g of dupGroups) {
+      const mid = g._id.machineId;
+      const ch = g._id.cameraChannel;
+      const before = await col.countDocuments({ machineId: mid, cameraChannel: ch });
+      await this.removeDuplicateChannelDocs(col, bucket, mid, ch);
+      const after = await col.countDocuments({ machineId: mid, cameraChannel: ch });
+      removed += Math.max(0, before - after);
+    }
+    return removed;
+  }
+
   static async ensureIndexes() {
     const db = getDatabase();
     const col = db.collection(COLLECTION);
@@ -49,6 +78,14 @@ class CameraVideo {
         console.warn('[CameraVideo] index:', e.message);
       }
     };
+    try {
+      const removed = await this.dedupeAllChannelSlots();
+      if (removed > 0) {
+        console.log(`[CameraVideo] deduped ${removed} extra row(s) before unique index`);
+      }
+    } catch (e) {
+      console.warn('[CameraVideo] dedupe before index:', e.message);
+    }
     await safe(() => col.createIndex({ machineId: 1, created_at: -1 }));
     await safe(() => col.createIndex({ created_at: -1 }));
     await safe(() =>

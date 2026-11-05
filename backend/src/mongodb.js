@@ -8,12 +8,20 @@ if (!process.env.MONGODB_URI) {
 
 const mongoConfig = {
   get uri() {
-    return process.env.MONGODB_URI || 'mongodb://localhost:27017';
+    return normalizeMongoUri(process.env.MONGODB_URI || 'mongodb://localhost:27017');
   },
   get database() {
     return process.env.MONGODB_DB_NAME || 'gpsDB';
   },
 };
+
+/** Prefer IPv4 for Atlas SRV (avoids TLS alert 80 on some VPS stacks). */
+function normalizeMongoUri(uri) {
+  const u = String(uri || '').trim();
+  if (!u.startsWith('mongodb+srv://')) return u;
+  if (/[?&]family=/.test(u)) return u;
+  return u.includes('?') ? `${u}&family=4` : `${u}?family=4`;
+}
 
 function mongoHostForLog(uri) {
   const s = String(uri || '');
@@ -22,12 +30,14 @@ function mongoHostForLog(uri) {
 }
 
 function buildClientOptions() {
-  const cap = Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS) || 15000;
+  const cap = Number(process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS) || 20000;
   const opts = {
     serverSelectionTimeoutMS: cap,
     connectTimeoutMS: cap,
+    socketTimeoutMS: 45000,
     retryWrites: true,
-    maxPoolSize: 20,
+    maxPoolSize: 30,
+    minPoolSize: 2,
     autoSelectFamily: false,
   };
   const uri = mongoConfig.uri;
@@ -74,13 +84,13 @@ const testConnection = async () => {
     resetClient();
     const host = mongoHostForLog(uri);
     console.log(`[db] Connecting to MongoDB (${host}) database=${mongoConfig.database}…`);
-    for (let attempt = 1; attempt <= 2; attempt += 1) {
+    for (let attempt = 1; attempt <= 3; attempt += 1) {
       try {
         if (attempt > 1) {
           resetClient();
           activeUri = uri;
-          await sleep(1500);
-          console.log(`[db] MongoDB retry ${attempt}/2…`);
+          await sleep(1500 * attempt);
+          console.log(`[db] MongoDB retry ${attempt}/3…`);
         }
         await getClient().connect();
         await getClient().db(mongoConfig.database).command({ ping: 1 });
@@ -88,7 +98,7 @@ const testConnection = async () => {
         return true;
       } catch (error) {
         lastErr = error;
-        console.error(`[db] attempt ${attempt}/2 failed (${host}):`, error.message);
+        console.error(`[db] MongoDB attempt ${attempt}/3 failed (${host}):`, error.message);
       }
     }
   }

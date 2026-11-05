@@ -5,6 +5,30 @@ const { emitCameraVideoUpdate, emitCameraVideoSerialized, emitCameraVideoDeleted
 
 const router = express.Router();
 
+const streamMetaCache = new Map();
+const STREAM_META_TTL_MS = 120_000;
+
+async function resolveStreamMeta(videoId) {
+  const id = String(videoId || '').trim();
+  const hit = streamMetaCache.get(id);
+  if (hit && hit.expires > Date.now()) return hit;
+
+  const doc = await CameraVideo.findById(id);
+  if (!doc) return null;
+
+  const file = await CameraVideo.getGridFsFile(doc.gridFsId);
+  if (!file) return null;
+
+  const meta = {
+    gridFsId: doc.gridFsId,
+    size: file.length,
+    contentType: doc.mimeType || file.contentType || 'video/webm',
+    expires: Date.now() + STREAM_META_TTL_MS,
+  };
+  streamMetaCache.set(id, meta);
+  return meta;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 200 * 1024 * 1024 },
@@ -34,14 +58,19 @@ router.post('/', upload.single('video'), async (req, res) => {
       durationSec: req.body.durationSec,
     });
 
-    emitCameraVideoUpdate(doc);
     const ms = Date.now() - t0;
-    if (ms > 5000) console.warn(`[CameraVideo] slow POST ${ms}ms ${doc.machineId}/${doc.cameraChannel}`);
-    return res.status(201).json({
+    const slowMs = Number(process.env.CAMERA_VIDEO_SLOW_POST_MS) || 15000;
+    if (ms > slowMs) {
+      console.warn(`[CameraVideo] slow POST ${ms}ms ${doc.machineId}/${doc.cameraChannel}`);
+    }
+
+    res.status(201).json({
       success: true,
       message: 'Video accepted',
       data: CameraVideo.serialize(doc),
     });
+    setImmediate(() => emitCameraVideoUpdate(doc));
+    return;
   } catch (error) {
     console.error('POST /api/camera-videos:', error.message);
     return res.status(500).json({
@@ -94,19 +123,16 @@ router.get('/', async (req, res) => {
 
 router.get('/:id/stream', async (req, res) => {
   try {
-    const doc = await CameraVideo.findById(req.params.id);
-    if (!doc) {
+    const meta = await resolveStreamMeta(req.params.id);
+    if (!meta) {
       return res.status(404).json({ success: false, message: 'Video not found' });
     }
 
-    const pinnedGridFsId = doc.gridFsId;
-    const file = await CameraVideo.getGridFsFile(pinnedGridFsId);
-    if (!file) {
-      return res.status(404).json({ success: false, message: 'Video file not found' });
-    }
-
-    const size = file.length;
-    const contentType = doc.mimeType || file.contentType || 'video/webm';
+    const pinnedGridFsId = meta.gridFsId;
+    const size = meta.size;
+    const contentType = meta.contentType;
+    const cacheCtl =
+      req.query.lock != null ? 'private, max-age=120' : 'no-store, max-age=0';
     const range = req.headers.range;
 
     if (range) {
@@ -124,7 +150,7 @@ router.get('/:id/stream', async (req, res) => {
         'Accept-Ranges': 'bytes',
         'Content-Length': chunkEnd - start + 1,
         'Content-Type': contentType,
-        'Cache-Control': 'no-store, max-age=0',
+        'Cache-Control': cacheCtl,
       });
       const stream = CameraVideo.openDownloadStream(pinnedGridFsId, {
         start,
@@ -141,7 +167,7 @@ router.get('/:id/stream', async (req, res) => {
       'Content-Length': size,
       'Content-Type': contentType,
       'Accept-Ranges': 'bytes',
-      'Cache-Control': 'no-store, max-age=0',
+      'Cache-Control': cacheCtl,
     });
     const stream = CameraVideo.openDownloadStream(pinnedGridFsId);
     stream.on('error', () => {
