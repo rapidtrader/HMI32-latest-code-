@@ -4,6 +4,7 @@ import PageLayout from './PageLayout';
 import SavedVideoPlayer from './SavedVideoPlayer';
 import { useSavedVideos } from '../hooks/useHmi32SavedVideos';
 import { useSavedVideoRealtime } from '../hooks/useSavedVideoRealtime';
+import { channelSortKey, inferCameraChannel } from '../utils/cameraVideoSlots';
 
 const fmtBytes = (n) => {
   const b = Number(n) || 0;
@@ -34,7 +35,12 @@ export default function SavedVideosPage() {
   const queryClient = useQueryClient();
   const [filterMachine, setFilterMachine] = useState('');
   const [filterSource, setFilterSource] = useState('');
+  const [filterChannel, setFilterChannel] = useState('');
   const queryMachine = filterMachine.trim() || undefined;
+  const queryChannel = filterChannel.trim().toUpperCase() || undefined;
+  const querySource =
+    filterSource ||
+    (queryChannel?.startsWith('MDVR') ? 'mdvr' : queryChannel?.startsWith('CH') ? 'ahd' : undefined);
 
   const { live } = useSavedVideoRealtime(queryMachine);
 
@@ -45,12 +51,42 @@ export default function SavedVideosPage() {
     fetchNextPage,
     hasNextPage,
     isFetchingNextPage,
-  } = useSavedVideos(queryMachine, { source: filterSource || undefined });
+  } = useSavedVideos(queryMachine, {
+    source: querySource,
+    cameraChannel: queryChannel,
+  });
 
-  const videos = data?.items || [];
-  const total = data?.total ?? videos.length;
+  const matchFilters = (v) => {
+    if (querySource && String(v?.source || 'ahd').toLowerCase() !== querySource) return false;
+    if (queryChannel) {
+      const ch = inferCameraChannel(v);
+      if (ch !== queryChannel) return false;
+    }
+    return true;
+  };
+
+  const videos = [...(data?.items || [])].filter(matchFilters).sort(
+    (a, b) => channelSortKey(a) - channelSortKey(b)
+  );
+  const total =
+    queryChannel || querySource ? videos.length : data?.total ?? videos.length;
 
   const machineOptions = [...new Set(videos.map((v) => v.machineId).filter(Boolean))];
+
+  const channelOptions = (() => {
+    const fromData = [
+      ...new Set(videos.map((v) => inferCameraChannel(v)).filter(Boolean)),
+    ].sort((a, b) => channelSortKey({ cameraChannel: a }) - channelSortKey({ cameraChannel: b }));
+    const presets =
+      filterSource === 'mdvr'
+        ? Array.from({ length: 8 }, (_, i) => `MDVR${i + 1}`)
+        : filterSource === 'ahd'
+          ? ['CH1', 'CH2', 'CH3', 'CH4']
+          : [...Array.from({ length: 4 }, (_, i) => `CH${i + 1}`), ...Array.from({ length: 8 }, (_, i) => `MDVR${i + 1}`)];
+    return [...new Set([...presets, ...fromData])].sort(
+      (a, b) => channelSortKey({ cameraChannel: a }) - channelSortKey({ cameraChannel: b })
+    );
+  })();
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['hmi32', 'saved-videos'] });
@@ -89,11 +125,32 @@ export default function SavedVideosPage() {
           <select
             className="hmi32-select"
             value={filterSource}
-            onChange={(e) => setFilterSource(e.target.value)}
+            onChange={(e) => {
+              setFilterSource(e.target.value);
+              setFilterChannel('');
+            }}
           >
             <option value="">All sources</option>
             <option value="ahd">AHD</option>
             <option value="mdvr">MDVR</option>
+          </select>
+          <select
+            className="hmi32-select"
+            value={filterChannel}
+            onChange={(e) => {
+              const ch = e.target.value;
+              setFilterChannel(ch);
+              if (ch.startsWith('MDVR')) setFilterSource('mdvr');
+              else if (ch.startsWith('CH')) setFilterSource('ahd');
+            }}
+            title={filterSource === 'mdvr' ? 'MDVR channel' : 'Camera channel'}
+          >
+            <option value="">{filterSource === 'mdvr' ? 'All MDVR ch' : 'All channels'}</option>
+            {channelOptions.map((ch) => (
+              <option key={ch} value={ch}>
+                {ch.startsWith('MDVR') ? ch.replace(/^MDVR/, 'MDVR ') : ch}
+              </option>
+            ))}
           </select>
         </div>
 
@@ -110,8 +167,8 @@ export default function SavedVideosPage() {
                   <SavedVideoPlayer video={v} />
                   <div className="hmi32-video-item__meta">
                     <p className="hmi32-video-item__title">
-                      {v.cameraChannel || v.title || v.filename}
-                      {v.source ? ` · ${String(v.source).toUpperCase()}` : ''}
+                      {inferCameraChannel(v) || v.cameraChannel || v.title || v.filename}
+                      {v.source ? ` · ${String(v.source).toUpperCase()}` : ' · AHD'}
                     </p>
                     <p className="hmi32-video-item__sub">{v.machineId}</p>
                     <p className="hmi32-video-item__sub">

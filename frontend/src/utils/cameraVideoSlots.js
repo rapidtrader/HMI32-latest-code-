@@ -2,12 +2,17 @@
 export function inferCameraChannel(video) {
   const raw = String(video?.cameraChannel ?? '').trim().toUpperCase();
   if (raw) {
+    const mdvr = raw.match(/^MDVR(\d+)$/);
+    if (mdvr) return `MDVR${mdvr[1]}`;
     const m = raw.match(/^CH?(\d+)$/);
     if (m) return `CH${m[1]}`;
     if (raw.startsWith('CH')) return raw;
+    if (raw.startsWith('MDVR')) return raw;
     return raw;
   }
   const t = String(video?.title || video?.filename || '');
+  const mm = t.match(/\bMDVR?\s*(\d+)\b/i);
+  if (mm) return `MDVR${mm[1]}`;
   const m = t.match(/\bCH?\s*(\d+)\b/i);
   if (m) return `CH${m[1]}`;
   return null;
@@ -16,6 +21,10 @@ export function inferCameraChannel(video) {
 export function channelSortKey(video) {
   const ch = inferCameraChannel(video);
   if (ch) {
+    if (ch.startsWith('MDVR')) {
+      const n = parseInt(ch.replace(/\D/g, ''), 10);
+      if (Number.isFinite(n)) return 1000 + n;
+    }
     const n = parseInt(ch.replace(/\D/g, ''), 10);
     if (Number.isFinite(n)) return n;
   }

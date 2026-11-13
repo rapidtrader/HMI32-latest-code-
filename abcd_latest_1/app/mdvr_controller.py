@@ -1,4 +1,5 @@
 """QML bridge: MDVR page start/stop and channel metadata."""
+import os
 import threading
 
 from PyQt5.QtCore import QObject, Qt, QTimer, pyqtProperty, pyqtSignal, pyqtSlot

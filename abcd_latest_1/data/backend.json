@@ -2,6 +2,11 @@
   "backendBaseUrl": "https://hmi.dynacleanindustries.com",
   "canRequireResponse": true,
   "cameraAutoSave": true,
-  "cameraClipSec": 60,
-  "cameraMdvrSave": true
+  "cameraClipSec": 120,
+  "cameraMdvrSave": true,
+  "mdvrSaveWithoutProbe": true,
+  "mdvrAvOffset": 1,
+  "mdvrId": "211529",
+  "mdvrUser": "211529",
+  "mdvrPassword": "000000"
 }

@@ -45,6 +45,8 @@ const isEmptySlot = (v) => (Number(v.sizeBytes) || 0) < 500;
 const CameraVideosPage = () => {
   const queryClient = useQueryClient();
   const [filterMachine, setFilterMachine] = useState('');
+  const [filterLiveSource, setFilterLiveSource] = useState('');
+  const [filterLiveChannel, setFilterLiveChannel] = useState('');
   const queryMachine = filterMachine.trim() || undefined;
   const [mergeHint, setMergeHint] = useState('');
   const [uploadError, setUploadError] = useState('');
@@ -62,6 +64,24 @@ const CameraVideosPage = () => {
     pausePolling: socketLive,
   });
   const videos = [...videosRaw].sort((a, b) => channelSortKey(a) - channelSortKey(b));
+
+  const liveTilesFiltered = liveTiles.filter((t) => {
+    if (filterLiveSource && t.source !== filterLiveSource) return false;
+    if (filterLiveChannel !== '') {
+      const want = Number(filterLiveChannel);
+      if (Number(t.channel) !== want) return false;
+    }
+    return true;
+  });
+
+  const liveChannelOptions = (() => {
+    const fromTiles = [...new Set(liveTiles.map((t) => Number(t.channel)).filter((n) => n > 0))].sort(
+      (a, b) => a - b
+    );
+    const max = filterLiveSource === 'mdvr' ? 8 : filterLiveSource === 'ahd' ? 4 : 8;
+    const preset = Array.from({ length: max }, (_, i) => i + 1);
+    return [...new Set([...preset, ...fromTiles])].sort((a, b) => a - b);
+  })();
 
   const refresh = () => {
     queryClient.invalidateQueries({ queryKey: ['hmi32', 'camera-videos'] });
@@ -105,10 +125,37 @@ const CameraVideosPage = () => {
               <circle cx="12" cy="12" r="3" />
               <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
             </svg>
-            <h2>Live preview — AHD + MDVR ({liveTiles.length})</h2>
+            <h2>
+              Live preview — AHD + MDVR ({liveTilesFiltered.length}
+              {liveTilesFiltered.length !== liveTiles.length ? ` / ${liveTiles.length}` : ''})
+            </h2>
           </div>
+          <select
+            className="hmi32-select"
+            value={filterLiveSource}
+            onChange={(e) => {
+              setFilterLiveSource(e.target.value);
+              setFilterLiveChannel('');
+            }}
+          >
+            <option value="">All sources</option>
+            <option value="ahd">AHD</option>
+            <option value="mdvr">MDVR</option>
+          </select>
+          <select
+            className="hmi32-select"
+            value={filterLiveChannel}
+            onChange={(e) => setFilterLiveChannel(e.target.value)}
+          >
+            <option value="">{filterLiveSource === 'mdvr' ? 'All MDVR ch' : 'All channels'}</option>
+            {liveChannelOptions.map((n) => (
+              <option key={n} value={String(n)}>
+                {filterLiveSource === 'mdvr' ? `MDVR ${n}` : `CH${n}`}
+              </option>
+            ))}
+          </select>
         </div>
-        <CameraLiveGrid tiles={liveTiles} socketLive={liveSocket} />
+        <CameraLiveGrid tiles={liveTilesFiltered} socketLive={liveSocket} />
       </div>
 
       <div className="hmi32-card">

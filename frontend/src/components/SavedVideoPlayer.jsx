@@ -28,7 +28,15 @@ export default function SavedVideoPlayer({ video }) {
           playsInline
           onPlay={() => setPlaying(true)}
           onPause={() => setPlaying(false)}
-          onError={() => setError('Could not load video')}
+          onError={() =>
+            setError(
+              video?.source === 'mdvr'
+                ? video?.sizeBytes && video.sizeBytes < 400_000
+                  ? 'Broken archive clip (~256 KB) — update Pi MDVR save and record new clips'
+                  : 'Could not load video — Pi should upload H.264 (remux/transcode)'
+                : 'Could not load video'
+            )
+          }
         />
       )}
       {playing && <span className="hmi32-live-badge" style={{ background: '#2563eb' }}>PLAY</span>}

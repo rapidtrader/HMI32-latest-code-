@@ -17,6 +17,13 @@ export default defineConfig(({ mode }) => {
           timeout: 0,
           proxyTimeout: 0,
         },
+        '/api/saved-videos': {
+          target: proxyTarget,
+          changeOrigin: true,
+          secure: proxyTarget.startsWith('https'),
+          timeout: 0,
+          proxyTimeout: 0,
+        },
         '/api': {
           target: proxyTarget,
           changeOrigin: true,

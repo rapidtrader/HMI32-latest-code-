@@ -3,12 +3,13 @@ import { fetchApi } from '../api/client';
 
 const PAGE = 40;
 
-export function useSavedVideos(machineId, { source } = {}) {
+export function useSavedVideos(machineId, { source, cameraChannel } = {}) {
   const queryMachine = machineId?.trim() || undefined;
   const src = source?.trim() || undefined;
+  const ch = cameraChannel?.trim().toUpperCase() || undefined;
 
   return useInfiniteQuery({
-    queryKey: ['hmi32', 'saved-videos', queryMachine || 'all', src || 'all'],
+    queryKey: ['hmi32', 'saved-videos', queryMachine || 'all', src || 'all', ch || 'all'],
     initialPageParam: 0,
     queryFn: async ({ pageParam }) => {
       const q = new URLSearchParams();
@@ -16,6 +17,7 @@ export function useSavedVideos(machineId, { source } = {}) {
       q.set('skip', String(pageParam));
       if (queryMachine) q.set('machineId', queryMachine);
       if (src) q.set('source', src);
+      if (ch) q.set('cameraChannel', ch);
       const data = await fetchApi(`/api/saved-videos?${q.toString()}`);
       return {
         items: data.data || [],

@@ -135,6 +135,10 @@ def _prune_tiny() -> int:
 
 
 def main() -> int:
+    print(
+        "Note: cameraAutoSave is in data/backend.json (not a shell command). "
+        "Run HMI first: python3 main_pyqt5.py"
+    )
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--prune-tiny",

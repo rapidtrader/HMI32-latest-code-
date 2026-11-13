@@ -190,6 +190,10 @@ def apply_backend_json_runtime_env() -> None:
       cameraAutoSave: true | false  → CAMERA_AUTO_SAVE=1|0
       cameraClipSec: number         → CAMERA_AUTO_SAVE_CLIP_SEC (min 1s archive segment)
       cameraMdvrSave: true | false  → MDVR_AUTO_SAVE=1|0 (RTSP segments to saved-videos)
+      mdvrSaveWithoutProbe: true    → try RTSP record even when ffprobe failed
+      mdvrAvOffset: 1               → CH1 = stream/av1_1 (this DVR; av0 invalid)
+      mdvrUser / mdvrPassword       → RTSP auth if required
+      mdvrId                        → device id (labels archive clips)
     """
     cfg = _read_backend_config_data()
     if "cameraAutoSave" in cfg:
@@ -213,6 +217,31 @@ def apply_backend_json_runtime_env() -> None:
         else:
             on = str(raw).strip().lower() in ("1", "true", "yes", "on")
         os.environ["MDVR_AUTO_SAVE"] = "1" if on else "0"
+    if "mdvrSaveWithoutProbe" in cfg:
+        raw = cfg.get("mdvrSaveWithoutProbe")
+        if isinstance(raw, bool):
+            soft = raw
+        else:
+            soft = str(raw).strip().lower() in ("1", "true", "yes", "on")
+        if soft:
+            os.environ["MDVR_SAVE_REQUIRE_PROBE"] = "0"
+            os.environ["MDVR_SAVE_WITHOUT_PROBE"] = "1"
+    if "mdvrAvOffset" in cfg:
+        try:
+            os.environ["MDVR_AV_OFFSET"] = str(int(cfg.get("mdvrAvOffset")))
+        except (TypeError, ValueError):
+            pass
+    midvr_id = str(cfg.get("mdvrId") or cfg.get("mdvr_id") or "").strip()
+    if midvr_id:
+        os.environ["MDVR_DEVICE_ID"] = midvr_id
+    user = str(cfg.get("mdvrUser") or cfg.get("mdvr_user") or "").strip()
+    pwd = str(cfg.get("mdvrPassword") or cfg.get("mdvr_password") or "").strip()
+    if not user and midvr_id:
+        user = midvr_id
+    if user:
+        os.environ["MDVR_USER"] = user
+    if pwd:
+        os.environ["MDVR_PASSWORD"] = pwd
 
 
 def can_require_response() -> bool:

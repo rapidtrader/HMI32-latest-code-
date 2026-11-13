@@ -1,17 +1,12 @@
-"""MDVR RTSP → ffmpeg segments → POST /api/saved-videos (source=mdvr)."""
-import glob
+"""MDVR RTSP → timed copy record → web MP4 → POST /api/saved-videos (source=mdvr)."""
 import os
-import signal
-import subprocess
 import threading
 import time
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Tuple
 
 _lock = threading.Lock()
 _running = False
-_procs: Dict[int, subprocess.Popen] = {}
-_watchers: Dict[int, threading.Thread] = {}
-_uploaded: Dict[int, Set[str]] = {}
+_workers: Dict[int, threading.Thread] = {}
 
 
 def _enabled() -> bool:
@@ -40,9 +35,24 @@ def _clip_dir() -> str:
 
 def _min_bytes() -> int:
     try:
+        custom = int(os.environ.get("MDVR_CLIP_MIN_UPLOAD_BYTES", "0"))
+        if custom > 0:
+            return max(4096, custom)
+    except ValueError:
+        pass
+    try:
         return max(4096, int(os.environ.get("CAMERA_CLIP_MIN_UPLOAD_BYTES", "12000")))
     except ValueError:
         return 12000
+
+
+def _transcode_on_upload() -> bool:
+    return os.environ.get("MDVR_SAVE_TRANSCODE", "1").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
 
 def _channel_ids() -> List[int]:
@@ -65,79 +75,80 @@ def _channel_ids() -> List[int]:
     return out
 
 
-def _ffmpeg_cmd(channel_id: int, out_tpl: str) -> List[str]:
+def _min_upload_bytes(duration_sec: float) -> int:
+    """Reject tiny broken MP4s (ffmpeg segment copy used to upload ~256 KB / no moov)."""
+    base = _min_bytes()
+    floor = max(base, int(os.environ.get("MDVR_CLIP_MIN_RAW_BYTES", "80000")))
+    scaled = max(floor, int(max(10.0, duration_sec) * 2500))
+    return min(scaled, 5_000_000)
+
+
+def _record_worker(channel_id: int) -> None:
+    """One clip at a time per channel — same pipeline as scripts/test_mdvr_one_clip.py."""
+    global _running
+    from logic.camera_auto_save import push_clip_to_server
+    from logic.mdvr_record import prepare_mdvr_upload_file, record_rtsp_copy
     from mdvr.rtsp_urls import rtsp_url
 
-    url = rtsp_url(channel_id)
-    transport = os.environ.get("MDVR_RTSP_TRANSPORT", "tcp").strip() or "tcp"
-    stimeout = os.environ.get("MDVR_RTSP_STIMEOUT_US", "10000000").strip()
-    bin_ = os.environ.get("MDVR_FFMPEG", "ffmpeg").strip() or "ffmpeg"
-    sec = _segment_sec()
-    return [
-        bin_,
-        "-hide_banner",
-        "-loglevel",
-        "error",
-        "-rtsp_transport",
-        transport,
-        "-stimeout",
-        stimeout,
-        "-i",
-        url,
-        "-an",
-        "-c",
-        "copy",
-        "-f",
-        "segment",
-        "-segment_time",
-        str(sec),
-        "-reset_timestamps",
-        "1",
-        out_tpl,
-    ]
-
-
-def _file_stable(path: str) -> bool:
-    min_b = _min_bytes()
-    try:
-        s1 = os.path.getsize(path)
-        if s1 < min_b:
-            return False
-        time.sleep(0.6)
-        s2 = os.path.getsize(path)
-        return s1 == s2 and s2 >= min_b
-    except OSError:
-        return False
-
-
-def _upload_worker(channel_id: int, pattern_glob: str) -> None:
-    global _running
     seg = _segment_sec()
-    seen = _uploaded.setdefault(channel_id, set())
-    while _running and channel_id in _procs:
-        for path in sorted(glob.glob(pattern_glob)):
-            if path in seen:
-                continue
-            if not path.lower().endswith(".mp4"):
-                continue
-            if not _file_stable(path):
-                continue
-            seen.add(path)
-            try:
-                from logic.camera_auto_save import push_clip_to_server
-
-                title = f"MDVR{channel_id} {os.path.basename(path)}"
-                push_clip_to_server(
-                    path,
-                    channel_id,
-                    duration_sec=float(seg),
-                    title=title,
-                    source="mdvr",
-                    channel_label=f"MDVR{channel_id}",
+    out_dir = _clip_dir()
+    url = rtsp_url(channel_id)
+    seq = 0
+    while _running:
+        seq += 1
+        raw = os.path.join(out_dir, f"mdvr{channel_id}_{seq:04d}.mp4")
+        rc, err, sz = record_rtsp_copy(url, raw, float(seg))
+        if not _running:
+            break
+        min_up = _min_upload_bytes(seg)
+        cleanup: List[str] = []
+        try:
+            if sz < min_up:
+                print(
+                    f"[MDVR-SAVE] CH{channel_id} clip too small ({sz} B, need {min_up}); rc={rc}"
                 )
-            except Exception as exc:
-                print(f"[MDVR-SAVE] upload CH{channel_id}: {exc}")
-        time.sleep(1.0)
+                if err:
+                    print(f"[MDVR-SAVE] ffmpeg: {err[-200:].replace(chr(10), ' ')}")
+                continue
+
+            upload_path = raw
+            duration_sec = float(seg)
+            if _transcode_on_upload():
+                prepared, probed_dur, cleanup = prepare_mdvr_upload_file(raw, min_bytes=min_up)
+                if not prepared:
+                    print(f"[MDVR-SAVE] CH{channel_id} not web-playable, skipping upload")
+                    continue
+                upload_path = prepared
+                if probed_dur > 1:
+                    duration_sec = round(probed_dur, 1)
+
+            dev = os.environ.get("MDVR_DEVICE_ID", "").strip()
+            base = f"MDVR{channel_id} {os.path.basename(upload_path)}"
+            title = f"{dev} {base}" if dev else base
+            uploaded, _queued = push_clip_to_server(
+                upload_path,
+                channel_id,
+                duration_sec=duration_sec,
+                title=title,
+                source="mdvr",
+                channel_label=f"MDVR{channel_id}",
+            )
+            if uploaded and upload_path != raw and os.path.isfile(raw):
+                try:
+                    os.remove(raw)
+                except OSError:
+                    pass
+        except Exception as exc:
+            print(f"[MDVR-SAVE] CH{channel_id}: {exc}")
+        finally:
+            for tmp in cleanup:
+                if tmp and tmp != raw and os.path.isfile(tmp):
+                    try:
+                        os.remove(tmp)
+                    except OSError:
+                        pass
+        if _running:
+            time.sleep(max(0.2, float(os.environ.get("MDVR_SAVE_GAP_SEC", "0.5"))))
 
 
 def start_mdvr_archive_save() -> Tuple[bool, str]:
@@ -156,66 +167,37 @@ def start_mdvr_archive_save() -> Tuple[bool, str]:
 
     with _lock:
         if _running:
-            return True, f"already running ({len(_procs)} ch)"
+            return True, f"already running ({len(_workers)} ch)"
         _running = True
-        out_dir = _clip_dir()
         sec = _segment_sec()
         started = 0
         for cid in chs:
-            if cid in _procs:
+            if cid in _workers:
                 continue
-            tpl = os.path.join(out_dir, f"mdvr{cid}_%03d.mp4")
-            glob_pat = os.path.join(out_dir, f"mdvr{cid}_*.mp4")
-            try:
-                proc = subprocess.Popen(
-                    _ffmpeg_cmd(cid, tpl),
-                    stdin=subprocess.DEVNULL,
-                    stdout=subprocess.DEVNULL,
-                    stderr=subprocess.PIPE,
-                    start_new_session=True,
-                )
-            except OSError as exc:
-                print(f"[MDVR-SAVE] ffmpeg CH{cid} failed: {exc}")
-                continue
-            _procs[cid] = proc
             t = threading.Thread(
-                target=_upload_worker,
-                args=(cid, glob_pat),
+                target=_record_worker,
+                args=(cid,),
                 daemon=True,
-                name=f"mdvr-save-watch-{cid}",
+                name=f"mdvr-save-rec-{cid}",
             )
-            _watchers[cid] = t
+            _workers[cid] = t
             t.start()
             started += 1
             time.sleep(max(0.2, float(os.environ.get("MDVR_SAVE_STAGGER_SEC", "0.5"))))
 
         if not started:
             _running = False
-            return False, "ffmpeg could not start any MDVR channel"
-        print(f"[MDVR-SAVE] recording {started} ch, {sec}s segments → /api/saved-videos")
-        return True, f"{started} MDVR ch, {sec}s segments to archive"
+            return False, "could not start any MDVR channel recorder"
+        print(f"[MDVR-SAVE] recording {started} ch, {sec}s clips (copy+remux) → /api/saved-videos")
+        return True, f"{started} MDVR ch, {sec}s clips to archive"
 
 
 def stop_mdvr_archive_save() -> None:
     global _running
     with _lock:
         _running = False
-        for cid, proc in list(_procs.items()):
-            try:
-                os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-            except (OSError, ProcessLookupError):
-                try:
-                    proc.terminate()
-                except OSError:
-                    pass
-            try:
-                proc.wait(timeout=3)
-            except subprocess.TimeoutExpired:
-                try:
-                    os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-                except (OSError, ProcessLookupError):
-                    proc.kill()
-            _procs.pop(cid, None)
-        _watchers.clear()
-        _uploaded.clear()
+        threads = list(_workers.values())
+        _workers.clear()
+    for t in threads:
+        t.join(timeout=5)
     print("[MDVR-SAVE] stopped")

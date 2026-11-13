@@ -74,8 +74,20 @@ class SavedVideo {
     const safeName = String(filename || 'clip.mp4').replace(/[^\w.\-]+/g, '_');
     const mid = String(machineId || 'unknown').trim() || 'unknown';
     const mime = mimeType || 'video/mp4';
-    const ch = cameraChannel ? String(cameraChannel).trim() : null;
     const src = String(source || 'ahd').trim().toLowerCase() || 'ahd';
+    let ch = cameraChannel ? String(cameraChannel).trim() : null;
+    if (ch) {
+      const up = ch.toUpperCase();
+      if (src === 'mdvr' && !up.startsWith('MDVR')) {
+        const m = up.match(/(\d+)/);
+        ch = m ? `MDVR${m[1]}` : up;
+      } else if (src === 'ahd' && up.startsWith('MDVR')) {
+        const m = up.match(/(\d+)/);
+        ch = m ? `CH${m[1]}` : up;
+      } else {
+        ch = up;
+      }
+    }
     const segDur = Number.isFinite(Number(durationSec)) ? Number(durationSec) : null;
     const displayTitle = String(title || safeName).trim() || safeName;
 
@@ -106,12 +118,23 @@ class SavedVideo {
     return { ...meta, _id: result.insertedId };
   }
 
-  static async list({ machineId, source, limit = 100, skip = 0 } = {}) {
+  static async list({ machineId, source, cameraChannel, limit = 100, skip = 0 } = {}) {
     const col = getDatabase().collection(COLLECTION);
     const minB = minBytes();
     const q = { sizeBytes: { $gte: minB } };
     if (machineId) q.machineId = String(machineId).trim();
     if (source) q.source = String(source).trim().toLowerCase();
+    if (cameraChannel) {
+      const ch = String(cameraChannel).trim().toUpperCase();
+      if (ch) {
+        q.cameraChannel = ch;
+        if (ch.startsWith('MDVR')) {
+          q.source = 'mdvr';
+        } else if (ch.startsWith('CH')) {
+          q.source = 'ahd';
+        }
+      }
+    }
 
     const lim = Math.min(200, Math.max(1, Number(limit) || 100));
     const sk = Math.max(0, Number(skip) || 0);

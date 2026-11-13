@@ -94,11 +94,13 @@ router.get('/', async (req, res) => {
   try {
     const machineId = String(req.query.machineId || '').trim() || undefined;
     const source = String(req.query.source || '').trim() || undefined;
+    const cameraChannel = String(req.query.cameraChannel || '').trim() || undefined;
     const limit = req.query.limit ? parseInt(String(req.query.limit), 10) : 100;
     const skip = req.query.skip ? parseInt(String(req.query.skip), 10) : 0;
     const { rows, total, limit: lim, skip: sk } = await SavedVideo.list({
       machineId,
       source,
+      cameraChannel,
       limit,
       skip,
     });
@@ -132,9 +134,11 @@ router.get('/:id/stream', async (req, res) => {
     const { GridFSBucket } = require('mongodb');
     const bucket = new GridFSBucket(getDatabase(), { bucketName: 'saved_videos_fs' });
 
-    res.setHeader('Content-Type', meta.contentType);
+    const mime = meta.contentType || doc.mimeType || 'video/mp4';
+    res.setHeader('Content-Type', mime.includes('video') ? mime : 'video/mp4');
     res.setHeader('Accept-Ranges', 'bytes');
     res.setHeader('Content-Length', String(meta.size));
+    res.setHeader('Cache-Control', 'public, max-age=120');
 
     const range = req.headers.range;
     if (range) {

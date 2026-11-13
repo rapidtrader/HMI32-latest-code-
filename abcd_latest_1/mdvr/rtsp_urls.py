@@ -29,7 +29,7 @@ def rtsp_url(channel_id: int) -> str:
     if av_raw:
         av_index = max(0, int(av_raw))
     else:
-        offset = int(os.environ.get("MDVR_AV_OFFSET", "0"))
+        offset = int(os.environ.get("MDVR_AV_OFFSET", "1"))
         av_index = max(0, int(channel_id) - 1 + offset)
     path_tmpl = os.environ.get("MDVR_RTSP_PATH", "stream/av{ch}_{st}")
     path = path_tmpl.format(ch=av_index, st=stream_index())
