@@ -1,0 +1,5 @@
+{
+  "backendBaseUrl": "https://hmi.dynacleanindustries.com",
+  "canRequireResponse": true,
+  "cameraAutoSave": false
+}

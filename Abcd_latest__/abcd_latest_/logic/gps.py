@@ -1,0 +1,151 @@
+import json
+import os
+import time
+import urllib.error
+import urllib.request
+from datetime import datetime
+
+try:
+    import pynmea2
+    import serial
+except ImportError:
+    pynmea2 = None
+    serial = None
+
+_GPS_DEBUG = os.environ.get("GPS_DEBUG", "0").strip() == "1"
+_GPS_TERM_LAST = {}
+
+
+def _gps_term_interval_sec():
+    try:
+        return max(1.0, float(os.environ.get("GPS_TERMINAL_WARN_INTERVAL_SEC", "3600")))
+    except ValueError:
+        return 60.0
+
+
+def _gps_print_terminal(key: str, message: str) -> None:
+    now = time.monotonic()
+    interval = _gps_term_interval_sec()
+    last = _GPS_TERM_LAST.get(key)
+    if last is not None and (now - last) < interval:
+        return
+    _GPS_TERM_LAST[key] = now
+    print(message)
+
+
+def _gps_serial_port():
+    env = os.environ.get("GPS_SERIAL_PORT", "").strip()
+    if env:
+        return env
+    if os.name == "nt":
+        return ""
+    return "/dev/ttyUSB1"
+
+
+def _gps_baud():
+    try:
+        return int(os.environ.get("GPS_BAUD", "115200"))
+    except ValueError:
+        return 115200
+
+
+def _is_position_sentence(line):
+    return len(line) >= 6 and line.startswith("$") and line[3:6] in ("GGA", "RMC")
+
+
+def _tracker_prefers_exclusive_serial() -> bool:
+    return os.environ.get("GPS_DIRECT_SERIAL", "0").strip().lower() not in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+
+
+def get_gps_data():
+    try:
+        from logic.gps_tracker import (
+            get_cached_fix,
+            get_nmea_stats,
+            get_status,
+            start_gps_tracker,
+            tracker_is_running,
+        )
+
+        start_gps_tracker()
+        cached = get_cached_fix()
+        if cached and cached.get("latitude") is not None and cached.get("longitude") is not None:
+            return {
+                "latitude": cached["latitude"],
+                "longitude": cached["longitude"],
+                "timestamp": cached.get("timestamp")
+                or datetime.utcnow().isoformat() + "Z",
+                "speed_kmh": cached.get("speed_kmh"),
+                "altitude": cached.get("altitude"),
+                "satellites": cached.get("satellites"),
+                "course": cached.get("course"),
+                "fix_valid": cached.get("fix_valid"),
+                "status": get_status(),
+            }
+        if tracker_is_running() and _tracker_prefers_exclusive_serial():
+            stats = get_nmea_stats()
+            return {
+                "fix_valid": False,
+                "latitude": None,
+                "longitude": None,
+                "timestamp": datetime.utcnow().isoformat() + "Z",
+                "satellites": max(
+                    int(stats.get("satellites") or 0),
+                    int(stats.get("in_view") or 0),
+                ),
+                "status": get_status(),
+            }
+    except Exception:
+        pass
+
+    if _tracker_prefers_exclusive_serial():
+        return None
+
+    if serial is None or pynmea2 is None:
+        _gps_print_terminal("no_deps", "GPS: install pyserial and pynmea2")
+        return None
+
+    port = _gps_serial_port()
+    if not port:
+        _gps_print_terminal(
+            "no_port",
+            "GPS: set GPS_SERIAL_PORT (e.g. COM4 on Windows, /dev/serial0 on Pi)",
+        )
+        return None
+    try:
+        ser = serial.Serial(port, _gps_baud(), timeout=2)
+        for _ in range(20):
+            line = ser.readline().decode("ascii", errors="replace").strip()
+            if _is_position_sentence(line):
+                try:
+                    msg = pynmea2.parse(line)
+                    lat, lon = msg.latitude, msg.longitude
+                    if lat is not None and lon is not None:
+                        return {
+                            "latitude": lat,
+                            "longitude": lon,
+                            "timestamp": datetime.utcnow().isoformat() + "Z",
+                        }
+                except Exception:
+                    pass
+        ser.close()
+    except Exception as e:
+        _gps_print_terminal("serial_read", f"GPS Error: {e}")
+    return None
+
+
+def get_machine_id():
+    try:
+        from logic.machine_logic import _get_machine_id
+
+        m = _get_machine_id()
+        if m:
+            return str(m).strip()
+    except Exception:
+        pass
+    return os.environ.get("MACHINE_ID", "").strip() or "unknown"
