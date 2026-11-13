@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import PageLayout from './PageLayout';
 import { useGpsDevices, useGpsHistory, useGpsLatest } from '../hooks/useHmi32Gps';
 import { useGpsRealtime } from '../hooks/useGpsRealtime';
+import GpsTrackMap from './GpsTrackMap';
 
 const fmtCoord = (n, d = 6) => {
   const x = Number(n);
@@ -16,11 +17,6 @@ const fmtDate = (d) => {
   } catch {
     return String(d);
   }
-};
-
-const mapsLink = (lat, lng) => {
-  if (lat == null || lng == null) return null;
-  return `https://www.openstreetmap.org/?mlat=${lat}&mlon=${lng}#map=17/${lat}/${lng}`;
 };
 
 export default function GpsTrackingPage() {
@@ -58,7 +54,20 @@ export default function GpsTrackingPage() {
 
   const lat = point?.latitude ?? point?.lat;
   const lng = point?.longitude ?? point?.lng;
-  const mapUrl = mapsLink(lat, lng);
+
+  const mapPoints = useMemo(() => {
+    const byId = new Map();
+    rows.forEach((r) => {
+      if (r?.id) byId.set(r.id, r);
+    });
+    if (point?.id && !byId.has(point.id)) byId.set(point.id, point);
+    else if (point && !point.id && lat != null && lng != null) {
+      byId.set('live', { ...point, id: 'live' });
+    } else if (point?.id) byId.set(point.id, { ...byId.get(point.id), ...point });
+    return [...byId.values()];
+  }, [rows, point, lat, lng]);
+
+  const latestMapId = point?.id || (live ? 'live' : null);
 
   return (
     <PageLayout
@@ -89,6 +98,19 @@ export default function GpsTrackingPage() {
         <p className="hmi32-muted">Loading GPS…</p>
       )}
       {error && <p className="hmi32-error">{error.message}</p>}
+
+      <div className="hmi32-card" style={{ marginBottom: '1.25rem', overflow: 'hidden' }}>
+        <div className="hmi32-side__head hmi32-side__head--green" style={{ borderRadius: '8px 8px 0 0' }}>
+          Track map ({mapPoints.length} point{mapPoints.length === 1 ? '' : 's'} on map)
+        </div>
+        {mapPoints.length ? (
+          <GpsTrackMap points={mapPoints} latestId={latestMapId} height={400} />
+        ) : (
+          <p className="hmi32-muted" style={{ padding: '1.25rem' }}>
+            Map dikhega jab GPS points database mein aayenge. Pi par GPS on rakho aur backend deploy karo.
+          </p>
+        )}
+      </div>
 
       {point && (
         <div className="hmi32-card" style={{ marginBottom: '1.25rem' }}>
@@ -122,13 +144,6 @@ export default function GpsTrackingPage() {
                 <span>Satellites</span>
                 <strong>{point.satellites}</strong>
               </div>
-            )}
-            {mapUrl && (
-              <p style={{ marginTop: '0.75rem' }}>
-                <a href={mapUrl} target="_blank" rel="noreferrer" className="hmi32-link">
-                  Open on map
-                </a>
-              </p>
             )}
           </div>
         </div>

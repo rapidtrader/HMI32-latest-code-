@@ -4,8 +4,17 @@ const router = express.Router();
 
 router.post('/', async (req, res) => {
   try {
-    const row = await GpsLocation.insertPoint(req.body || {});
-    return res.status(201).json({ success: true, data: row });
+    const result = await GpsLocation.insertPoint(req.body || {});
+    if (result.skipped) {
+      return res.status(200).json({
+        success: true,
+        skipped: true,
+        duplicate: true,
+        message: 'Same latitude/longitude as last point — not saved',
+        data: result.data,
+      });
+    }
+    return res.status(201).json({ success: true, data: result.data });
   } catch (error) {
     const status = error.status || 500;
     if (status >= 500) console.error('POST /api/gps:', error.message);

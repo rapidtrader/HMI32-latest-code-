@@ -3,6 +3,28 @@ const { writeSpool, removeSpool } = require('../utils/gpsSpool');
 const { emitGpsLocation } = require('../realtime');
 
 const COLLECTION = 'gps_locations';
+const COORD_DECIMALS = 6;
+
+function roundCoord(n) {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return null;
+  const f = 10 ** COORD_DECIMALS;
+  return Math.round(x * f) / f;
+}
+
+function isDuplicateOfLatest(latest, lat, lon) {
+  if (!latest) return false;
+  return sameCoordinates(latest.latitude, latest.longitude, lat, lon);
+}
+
+function sameCoordinates(lat1, lon1, lat2, lon2) {
+  const a = roundCoord(lat1);
+  const b = roundCoord(lon1);
+  const c = roundCoord(lat2);
+  const d = roundCoord(lon2);
+  if (a == null || b == null || c == null || d == null) return false;
+  return a === c && b === d;
+}
 
 class GpsLocation {
   static async ensureIndexes() {
@@ -87,6 +109,11 @@ class GpsLocation {
       throw err;
     }
 
+    const prev = await this.findLatest(norm.deviceId);
+    if (isDuplicateOfLatest(prev, norm.latitude, norm.longitude)) {
+      return { skipped: true, duplicate: true, data: prev };
+    }
+
     let spoolFile = null;
     if (useSpool) {
       spoolFile = writeSpool(norm);
@@ -113,7 +140,7 @@ class GpsLocation {
     const row = { ...doc, _id: result.insertedId };
     const serialized = this.serialize(row);
     emitGpsLocation(serialized);
-    return serialized;
+    return { skipped: false, duplicate: false, data: serialized };
   }
 
   static async findLatest(deviceId) {
@@ -155,8 +182,8 @@ class GpsLocation {
       try {
         const wrapped = readSpoolFile(file);
         const payload = wrapped.payload || wrapped;
-        await this.insertPoint(payload, { useSpool: false });
-        ok += 1;
+        const inserted = await this.insertPoint(payload, { useSpool: false });
+        if (!inserted.skipped) ok += 1;
       } catch (e) {
         console.warn('[GpsLocation] spool replay skip:', file, e.message);
       }
@@ -165,5 +192,8 @@ class GpsLocation {
     return ok;
   }
 }
+
+GpsLocation.isDuplicateOfLatest = isDuplicateOfLatest;
+GpsLocation.sameCoordinates = sameCoordinates;
 
 module.exports = GpsLocation;
