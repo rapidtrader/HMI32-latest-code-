@@ -12,6 +12,7 @@ export const APP_ROUTES = {
   MACHINE_INFO: '/app/machine-info',
   REPORTS: '/app/reports',
   CAMERA_VIDEOS: '/app/camera-videos',
+  SAVED_VIDEOS: '/app/saved-videos',
 };
 
 /** Convenience aliases used across the UI */
@@ -23,6 +24,7 @@ export const ROUTES = {
   MACHINE_INFO: APP_ROUTES.MACHINE_INFO,
   REPORTS: APP_ROUTES.REPORTS,
   CAMERA_VIDEOS: APP_ROUTES.CAMERA_VIDEOS,
+  SAVED_VIDEOS: APP_ROUTES.SAVED_VIDEOS,
 };
 
 /** Old bookmarks → new paths */
@@ -33,6 +35,7 @@ export const LEGACY_REDIRECTS = [
   { from: '/machine-info', to: APP_ROUTES.MACHINE_INFO },
   { from: '/reports', to: APP_ROUTES.REPORTS },
   { from: '/camera-videos', to: APP_ROUTES.CAMERA_VIDEOS },
+  { from: '/saved-videos', to: APP_ROUTES.SAVED_VIDEOS },
 ];
 
 export function defaultAuthedPath() {

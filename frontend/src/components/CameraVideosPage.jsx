@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  compactCameraVideos,
-  deleteCameraVideo,
-} from '../api/client';
+import { compactCameraVideos } from '../api/client';
 import { useCameraVideos } from '../hooks/useHmi32Queries';
 import { useCameraVideoRealtime } from '../hooks/useCameraVideoRealtime';
 import { channelSortKey, inferCameraChannel } from '../utils/cameraVideoSlots';
@@ -80,16 +77,6 @@ const CameraVideosPage = () => {
     } catch (e) {
       setMergeHint('');
       setUploadError(e.message || 'Could not merge old clips on server');
-    }
-  };
-
-  const onDelete = async (id) => {
-    if (!window.confirm('Delete this video from database?')) return;
-    try {
-      await deleteCameraVideo(id);
-      refresh();
-    } catch (e) {
-      setUploadError(e.message || 'Delete failed');
     }
   };
 
@@ -177,9 +164,6 @@ const CameraVideosPage = () => {
                         : ` · growing ${fmtDuration(v.durationSec)}`
                       : ''}
                   </p>
-                  <button type="button" className="hmi32-video-item__delete" onClick={() => onDelete(v.id)}>
-                    Delete
-                  </button>
                 </div>
               </article>
               );

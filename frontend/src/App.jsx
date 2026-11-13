@@ -9,6 +9,7 @@ import Hmi32Monitor from './components/Hmi32Monitor';
 import MachineInfoPage from './components/MachineInfoPage';
 import ReportsPage from './components/ReportsPage';
 import CameraVideosPage from './components/CameraVideosPage';
+import SavedVideosPage from './components/SavedVideosPage';
 import {
   AUTH_ROUTES,
   APP_ROUTES,
@@ -49,6 +50,7 @@ const App = () => {
         <Route path="machine-info" element={<MachineInfoPage />} />
         <Route path="reports" element={<ReportsPage />} />
         <Route path="camera-videos" element={<CameraVideosPage />} />
+        <Route path="saved-videos" element={<SavedVideosPage />} />
       </Route>
 
       {LEGACY_REDIRECTS.map(({ from, to }) => (

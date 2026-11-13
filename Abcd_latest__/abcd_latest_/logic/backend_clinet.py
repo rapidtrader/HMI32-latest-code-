@@ -501,3 +501,106 @@ def post_camera_video(
         mime=mime,
         timeout=timeout,
     )
+
+
+def post_saved_video_bytes(
+    video_bytes: bytes,
+    filename: str,
+    machine_id,
+    title=None,
+    camera_channel=None,
+    duration_sec=None,
+    mime=None,
+    source=None,
+    timeout=300,
+):
+    """POST /api/saved-videos — append-only archive (no replace, no server delete)."""
+    base = get_backend_base()
+    if not base:
+        return False, None, "BACKEND_BASE_URL not configured"
+
+    mid = str(machine_id or "").strip()
+    if not mid:
+        return False, None, "machine_id is empty"
+
+    if not video_bytes or len(video_bytes) < 256:
+        return False, None, "video too small"
+
+    name = str(filename or "clip.mp4").strip() or "clip.mp4"
+    ext = os.path.splitext(name)[1].lower()
+    if not mime:
+        if ext == ".webm":
+            mime = "video/webm"
+        elif ext == ".mp4":
+            mime = "video/mp4"
+        else:
+            mime = "application/octet-stream"
+
+    fields = {
+        "machineId": mid,
+        "title": str(title or name).strip() or name,
+        "cameraChannel": str(camera_channel).strip() if camera_channel else None,
+        "durationSec": str(int(duration_sec)) if duration_sec is not None else None,
+        "source": str(source or "ahd").strip().lower() or "ahd",
+    }
+    body, ctype = _encode_multipart(fields, "video", video_bytes, name, mime)
+
+    path = os.environ.get("SAVED_VIDEO_UPLOAD_PATH", "/api/saved-videos").strip()
+    if not path.startswith("/"):
+        path = f"/{path}"
+    url = f"{base}{path}"
+    req = urllib.request.Request(
+        url,
+        data=body,
+        headers={"Content-Type": ctype},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            text = resp.read().decode("utf-8", errors="replace")
+            ok = 200 <= resp.status < 300 or resp.status == 202
+            return ok, resp.status, text
+    except urllib.error.HTTPError as e:
+        raw = e.read().decode("utf-8", errors="replace") if e.fp else ""
+        return False, e.code, raw
+    except urllib.error.URLError as e:
+        return False, None, str(e.reason)
+
+
+def post_saved_video(
+    file_path,
+    machine_id,
+    title=None,
+    camera_channel=None,
+    duration_sec=None,
+    source=None,
+    timeout=300,
+):
+    """Upload clip to permanent archive on server."""
+    path = str(file_path or "").strip()
+    if not path or not os.path.isfile(path):
+        return False, None, f"file not found: {path}"
+
+    with open(path, "rb") as f:
+        video_bytes = f.read()
+
+    filename = os.path.basename(path)
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".webm":
+        mime = "video/webm"
+    elif ext == ".mp4":
+        mime = "video/mp4"
+    else:
+        mime = "application/octet-stream"
+
+    return post_saved_video_bytes(
+        video_bytes,
+        filename,
+        machine_id,
+        title=title,
+        camera_channel=camera_channel,
+        duration_sec=duration_sec,
+        mime=mime,
+        source=source,
+        timeout=timeout,
+    )

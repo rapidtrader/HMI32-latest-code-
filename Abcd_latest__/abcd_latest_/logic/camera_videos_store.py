@@ -157,7 +157,7 @@ def sync_pending_to_database(limit: Optional[int] = None) -> Tuple[int, int]:
     Upload pending clips from JSON index to POST /api/camera-videos.
     Returns (uploaded_ok_count, failed_count).
     """
-    from logic.backend_clinet import get_backend_base, post_camera_video
+    from logic.backend_clinet import get_backend_base, post_saved_video
 
     if not get_backend_base():
         return 0, 0
@@ -181,12 +181,13 @@ def sync_pending_to_database(limit: Optional[int] = None) -> Tuple[int, int]:
             fail_count += 1
             continue
 
-        ok, code, text = post_camera_video(
+        ok, code, text = post_saved_video(
             path,
             machine_id=row.get("machineId"),
             title=row.get("title"),
             camera_channel=row.get("cameraChannel"),
             duration_sec=row.get("durationSec"),
+            source=row.get("source") or "ahd",
             timeout=int(os.environ.get("CAMERA_VIDEO_UPLOAD_TIMEOUT_SEC", "900")),
         )
         if ok:

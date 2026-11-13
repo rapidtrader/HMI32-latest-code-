@@ -12,7 +12,9 @@ const SuctionSession = require('./models/SuctionSession');
 const RuntimeData = require('./models/RuntimeData');
 const { registerUser, loginUser, verifyToken, isSignupAllowed } = require('./services/authService');
 const cameraVideosRouter = require('./routes/cameraVideos');
+const savedVideosRouter = require('./routes/savedVideos');
 const CameraVideo = require('./models/CameraVideo');
+const SavedVideo = require('./models/SavedVideo');
 const { verifyFfmpegAtStartup } = require('./utils/videoConcat');
 const app = express();
 const httpServer = http.createServer(app);
@@ -46,6 +48,7 @@ app.use((req, res, next) => {
 });
 
 app.use('/api/camera-videos', cameraVideosRouter);
+app.use('/api/saved-videos', savedVideosRouter);
 
 const io = new SocketIOServer(httpServer, {
   cors: { origin: corsOrigins, credentials: true },
@@ -648,6 +651,7 @@ const startServer = async () => {
     await SuctionSession.ensureIndexes().catch((e) => console.warn('SuctionSession index warn:', e.message));
     await RuntimeData.ensureIndexes().catch((e) => console.warn('RuntimeData index warn:', e.message));
     await CameraVideo.ensureIndexes().catch((e) => console.warn('CameraVideo index warn:', e.message));
+    await SavedVideo.ensureIndexes().catch((e) => console.warn('SavedVideo index warn:', e.message));
     await verifyFfmpegAtStartup().catch(() => {});
     apiReady = true;
     console.log('[api] Ready — accepting /api requests');

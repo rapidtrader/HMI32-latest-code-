@@ -161,14 +161,12 @@ def run():
     except Exception as exc:
         print(f"[CONFIG] Backend probe skipped: {exc}")
     if backend_url:
-        upload_path = os.environ.get(
-            "CAMERA_VIDEO_UPLOAD_PATH", "/api/camera-videos/save"
-        ).strip()
-        if not upload_path.startswith("/"):
-            upload_path = f"/{upload_path}"
+        archive_path = os.environ.get("SAVED_VIDEO_UPLOAD_PATH", "/api/saved-videos").strip()
+        if not archive_path.startswith("/"):
+            archive_path = f"/{archive_path}"
         print(f"[CONFIG] Backend URL: {backend_url}")
         print(f"[CONFIG] API base: {backend_url}/api/")
-        print(f"[CONFIG] Camera clips upload: POST {backend_url}{upload_path}")
+        print(f"[CONFIG] Video archive (append-only): POST {backend_url}{archive_path}")
         try:
             from logic.camera_videos_store import STORE_PATH
 

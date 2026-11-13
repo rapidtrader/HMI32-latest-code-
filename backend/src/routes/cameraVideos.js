@@ -220,6 +220,12 @@ router.get('/:id/stream', async (req, res) => {
 });
 
 router.delete('/:id', async (req, res) => {
+  if (process.env.ALLOW_CAMERA_VIDEO_DELETE !== '1') {
+    return res.status(403).json({
+      success: false,
+      message: 'Video delete is disabled on this server',
+    });
+  }
   try {
     const removed = await CameraVideo.deleteById(req.params.id);
     if (!removed) {

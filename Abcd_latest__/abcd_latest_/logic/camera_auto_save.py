@@ -35,7 +35,7 @@ def push_clip_to_server(
     On network fail → camera_videos.json for retry.
     Returns (uploaded_ok, queued_in_json).
     """
-    from logic.backend_clinet import post_camera_video
+    from logic.backend_clinet import post_saved_video
     from logic.camera_video_upload import resolve_machine_id
 
     direct = os.environ.get("CAMERA_VIDEO_DIRECT_UPLOAD", "1").strip().lower() in (
@@ -59,12 +59,13 @@ def push_clip_to_server(
 
     if direct:
         with _upload_slots:
-            ok, code, text = post_camera_video(
+            ok, code, text = post_saved_video(
                 file_path,
                 machine_id=mid,
                 title=stamp,
                 camera_channel=ch,
                 duration_sec=duration_sec,
+                source="ahd",
                 timeout=upload_timeout,
             )
         if ok:
@@ -73,7 +74,7 @@ def push_clip_to_server(
                     os.remove(file_path)
                 except OSError:
                     pass
-            print(f"[CAMERA-VIDEO] Direct save → server ({ch}, {duration_sec}s)")
+            print(f"[SAVED-VIDEO] Archive upload OK ({ch}, {duration_sec}s)")
             return True, False
         print(f"[CAMERA-VIDEO] Direct upload failed ({code}): {text[:120]}")
 

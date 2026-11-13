@@ -34,6 +34,22 @@ function emitCameraVideoDeleted({ id, machineId }) {
 }
 
 /** Pi → browser live JPEG preview (not stored in Mongo). */
+function emitSavedVideoNew(doc) {
+  if (!io || !doc) return;
+  let video;
+  try {
+    const SavedVideo = require('./models/SavedVideo');
+    video = SavedVideo.serialize(doc);
+  } catch {
+    return;
+  }
+  if (!video?.id) return;
+  io.emit('saved-video:new', {
+    machineId: video.machineId,
+    video,
+  });
+}
+
 function emitCameraLiveFrame(payload) {
   if (!io || !payload?.jpeg) return;
   const machineId = String(payload.machineId || '').trim();
@@ -55,4 +71,5 @@ module.exports = {
   emitCameraVideoSerialized,
   emitCameraVideoDeleted,
   emitCameraLiveFrame,
+  emitSavedVideoNew,
 };
