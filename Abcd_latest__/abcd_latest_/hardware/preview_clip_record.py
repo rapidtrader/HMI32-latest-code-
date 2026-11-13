@@ -30,10 +30,10 @@ def _clip_fps() -> int:
 
 def _segment_sec() -> float:
     try:
-        sec = float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "600"))
-        return max(3.0, min(3600.0, sec))
+        sec = float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "1"))
+        return max(1.0, min(3600.0, sec))
     except ValueError:
-        return 600.0
+        return 1.0
 
 
 def _ffmpeg_encode_cmd(out_path: str, w: int, h: int, fps: int) -> List[str]:

@@ -5,5 +5,6 @@
   "_apiEndpoint": "https://hmi.dynacleanindustries.com/api/",
   "_localDevExample": "http://100.90.128.80:4002",
   "_cameraVideos": "POST /api/camera-videos — deploy latest backend on production first",
-  "_cameraAutoSave": "CAMERA_AUTO_SAVE=1; CAMERA_AUTO_SAVE_CLIP_SEC=600 (10 min clips)",
+  "cameraClipSec": 1,
+  "_cameraClipSec": "1 = new clip to DB every second per channel (heavy); 600 = 10 min",
 }

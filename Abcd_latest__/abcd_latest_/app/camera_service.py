@@ -98,9 +98,9 @@ def _auto_save_continuous() -> bool:
 
 def _auto_save_clip_sec() -> float:
     try:
-        return max(5.0, float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "600")))
+        return max(1.0, min(3600.0, float(os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "1"))))
     except ValueError:
-        return 600.0
+        return 1.0
 
 
 def _auto_save_rotate_channels() -> bool:

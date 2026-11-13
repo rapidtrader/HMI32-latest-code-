@@ -73,8 +73,8 @@ os.environ.setdefault("CAMERA_FRAME_MIN_MS", "180")
 # Continuous all-channel clips → JSON → server (backend.json cameraAutoSave overrides)
 os.environ.setdefault("CAMERA_AUTO_SAVE", "0")
 os.environ.setdefault("CAMERA_AUTO_SAVE_START_DELAY_SEC", "15")
-os.environ.setdefault("CAMERA_AUTO_SAVE_MIN_LIVE_SEC", "8")
-os.environ.setdefault("CAMERA_AUTO_SAVE_CLIP_SEC", "600")
+os.environ.setdefault("CAMERA_AUTO_SAVE_MIN_LIVE_SEC", "2")
+os.environ.setdefault("CAMERA_AUTO_SAVE_CLIP_SEC", "1")
 # Gap between one-shot batches only (continuous mode ignores this)
 os.environ.setdefault("CAMERA_AUTO_SAVE_GAP_SEC", "0")
 os.environ.setdefault("CAMERA_AUTO_SAVE_SETTLE_SEC", "0.2")
@@ -178,9 +178,10 @@ def run():
     from app.config import can_require_response
     print(f"[CONFIG] CAN 0x202 response required: {can_require_response()}")
     auto = os.environ.get("CAMERA_AUTO_SAVE", "0").strip()
+    clip_sec = os.environ.get("CAMERA_AUTO_SAVE_CLIP_SEC", "1")
     print(
         f"[CONFIG] Camera auto-save: {'ON' if auto in ('1', 'true', 'yes', 'on') else 'OFF'} "
-        f"(backend.json cameraAutoSave or export CAMERA_AUTO_SAVE=1)"
+        f"clip every {clip_sec}s → /api/saved-videos"
     )
 
     setup_can_bus()
