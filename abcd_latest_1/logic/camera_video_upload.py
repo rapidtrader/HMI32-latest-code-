@@ -31,6 +31,8 @@ def save_clip_to_json_index(
     duration_sec: Optional[float] = None,
     machine_id: Optional[str] = None,
     title: Optional[str] = None,
+    source: Optional[str] = None,
+    camera_channel: Optional[str] = None,
 ) -> dict:
     return register_clip(
         file_path,
@@ -38,6 +40,8 @@ def save_clip_to_json_index(
         duration_sec=duration_sec,
         machine_id=machine_id,
         title=title,
+        source=source,
+        camera_channel=camera_channel,
     )
 
 

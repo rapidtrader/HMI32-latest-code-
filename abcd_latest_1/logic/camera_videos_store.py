@@ -98,6 +98,8 @@ def register_clip(
     duration_sec: Optional[float] = None,
     machine_id: Optional[str] = None,
     title: Optional[str] = None,
+    source: Optional[str] = None,
+    camera_channel: Optional[str] = None,
 ) -> dict:
     """Append clip metadata to camera_videos.json (uploadStatus=pending)."""
     path = os.path.abspath(str(file_path))
@@ -107,7 +109,8 @@ def register_clip(
     from logic.camera_video_upload import resolve_machine_id
 
     mid = resolve_machine_id(machine_id)
-    ch = f"CH{int(camera_id)}"
+    ch = str(camera_channel).strip() if camera_channel else f"CH{int(camera_id)}"
+    src = str(source or "ahd").strip().lower() or "ahd"
     if not title:
         title = f"{ch} clip"
 
@@ -126,6 +129,7 @@ def register_clip(
         "serverId": None,
         "uploadError": None,
         "uploadedAt": None,
+        "source": src,
     }
 
     data = load_store()

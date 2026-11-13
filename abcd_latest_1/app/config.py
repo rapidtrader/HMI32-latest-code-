@@ -189,6 +189,7 @@ def apply_backend_json_runtime_env() -> None:
     Optional keys in data/backend.json (no export needed on Pi):
       cameraAutoSave: true | false  → CAMERA_AUTO_SAVE=1|0
       cameraClipSec: number         → CAMERA_AUTO_SAVE_CLIP_SEC (min 1s archive segment)
+      cameraMdvrSave: true | false  → MDVR_AUTO_SAVE=1|0 (RTSP segments to saved-videos)
     """
     cfg = _read_backend_config_data()
     if "cameraAutoSave" in cfg:
@@ -205,6 +206,13 @@ def apply_backend_json_runtime_env() -> None:
             os.environ["CAMERA_AUTO_SAVE_CLIP_SEC"] = str(sec)
         except (TypeError, ValueError):
             pass
+    if "cameraMdvrSave" in cfg:
+        raw = cfg.get("cameraMdvrSave")
+        if isinstance(raw, bool):
+            on = raw
+        else:
+            on = str(raw).strip().lower() in ("1", "true", "yes", "on")
+        os.environ["MDVR_AUTO_SAVE"] = "1" if on else "0"
 
 
 def can_require_response() -> bool:

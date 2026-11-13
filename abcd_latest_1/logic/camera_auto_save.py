@@ -29,6 +29,8 @@ def push_clip_to_server(
     camera_id: int,
     duration_sec: Optional[float] = None,
     title: Optional[str] = None,
+    source: str = "ahd",
+    channel_label: Optional[str] = None,
 ) -> Tuple[bool, bool]:
     """
     Live save: POST clip to website immediately (no JSON queue if upload OK).
@@ -52,8 +54,9 @@ def push_clip_to_server(
     )
 
     mid = resolve_machine_id()
-    ch = f"CH{int(camera_id)}"
+    ch = channel_label or f"CH{int(camera_id)}"
     stamp = title or f"{ch} clip"
+    src = str(source or "ahd").strip().lower() or "ahd"
 
     upload_timeout = int(os.environ.get("CAMERA_VIDEO_UPLOAD_TIMEOUT_SEC", "900"))
 
@@ -65,7 +68,7 @@ def push_clip_to_server(
                 title=stamp,
                 camera_channel=ch,
                 duration_sec=duration_sec,
-                source="ahd",
+                source=src,
                 timeout=upload_timeout,
             )
         if ok:
@@ -74,7 +77,7 @@ def push_clip_to_server(
                     os.remove(file_path)
                 except OSError:
                     pass
-            print(f"[SAVED-VIDEO] Archive upload OK ({ch}, {duration_sec}s)")
+            print(f"[SAVED-VIDEO] Archive upload OK ({ch}, {src}, {duration_sec}s)")
             return True, False
         print(f"[CAMERA-VIDEO] Direct upload failed ({code}): {text[:120]}")
 
@@ -83,6 +86,8 @@ def push_clip_to_server(
         int(camera_id),
         duration_sec=duration_sec,
         title=stamp,
+        source=src,
+        camera_channel=ch,
     )
     return False, True
 

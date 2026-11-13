@@ -90,11 +90,37 @@ class MdvrController(QObject):
         if any_channel_probe_ok():
             self._set_running(True)
             self._emit("MDVR live — sub-stream preview")
+            try:
+                from logic.mdvr_auto_save import start_mdvr_archive_save
+
+                ok, msg = start_mdvr_archive_save()
+                if ok:
+                    self._emit(f"MDVR archive: {msg}")
+                else:
+                    self._emit(f"MDVR archive skipped: {msg}")
+            except Exception as exc:
+                print(f"[MDVR-SAVE] start error: {exc}")
         else:
             self._set_running(True)
             self._emit(
                 "MDVR started but no channel responded — check Ethernet / MDVR power"
             )
+            try:
+                from logic.mdvr_auto_save import start_mdvr_archive_save
+
+                if os.environ.get("MDVR_SAVE_WITHOUT_PROBE", "").strip().lower() in (
+                    "1",
+                    "true",
+                    "yes",
+                    "on",
+                ):
+                    ok, msg = start_mdvr_archive_save()
+                    if ok:
+                        self._emit(f"MDVR archive (no probe): {msg}")
+                    else:
+                        self._emit(f"MDVR archive failed: {msg}")
+            except Exception as exc:
+                print(f"[MDVR-SAVE] start error: {exc}")
 
     def _on_worker_failed(self, message: str):
         self._busy_watch.stop()
@@ -140,6 +166,12 @@ class MdvrController(QObject):
 
     @pyqtSlot()
     def stopAll(self):
+        try:
+            from logic.mdvr_auto_save import stop_mdvr_archive_save
+
+            stop_mdvr_archive_save()
+        except Exception as exc:
+            print(f"[MDVR-SAVE] stop error: {exc}")
         self._set_busy(False)
         self._set_running(False)
         reset_probe_session()
