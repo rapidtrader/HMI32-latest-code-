@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "updated_at": "2026-11-13T05:09:01Z",
+  "clips": [
+    {
+      "id": "7943555f7b424c1d",
+      "localFile": "/home/marvsmart/hmi/abcd_latest_/data/video_clips/preview_ch3_1b1033f28a.mp4",
+      "filename": "preview_ch3_1b1033f28a.mp4",
+      "machineId": "pi-00de9c0a70",
+      "title": "CH3 2026-11-13 13:08:36",
+      "cameraChannel": "CH3",
+      "durationSec": 3.0,
+      "mimeType": "video/mp4",
+      "sizeBytes": 2030,
+      "createdAt": "2026-11-13T05:08:36Z",
+      "uploadStatus": "uploaded",
+      "serverId": null,
+      "uploadError": null,
+      "uploadedAt": "2026-11-13T05:08:43Z"
+    },
+    {
+      "id": "8903dfe8095648ab",
+      "localFile": "/home/marvsmart/hmi/abcd_latest_/data/video_clips/preview_ch4_e2941c62d3.mp4",
+      "filename": "preview_ch4_e2941c62d3.mp4",
+      "machineId": "pi-00de9c0a70",
+      "title": "CH4 2026-11-13 13:08:36",
+      "cameraChannel": "CH4",
+      "durationSec": 3.0,
+      "mimeType": "video/mp4",
+      "sizeBytes": 2015,
+      "createdAt": "2026-11-13T05:08:36Z",
+      "uploadStatus": "uploaded",
+      "serverId": null,
+      "uploadError": null,
+      "uploadedAt": "2026-11-13T05:08:38Z"
+    },
+    {
+      "id": "876f867820484fc9",
+      "localFile": "/home/marvsmart/hmi/abcd_latest_/data/video_clips/preview_ch3_ab9ed1632b.mp4",
+      "filename": "preview_ch3_ab9ed1632b.mp4",
+      "machineId": "pi-00de9c0a70",
+      "title": "CH3 2026-11-13 13:08:51",
+      "cameraChannel": "CH3",
+      "durationSec": 3.0,
+      "mimeType": "video/mp4",
+      "sizeBytes": 2030,
+      "createdAt": "2026-11-13T05:08:52Z",
+      "uploadStatus": "uploaded",
+      "serverId": null,
+      "uploadError": null,
+      "uploadedAt": "2026-11-13T05:09:01Z"
+    },
+    {
+      "id": "eacf2a285d9845b8",
+      "localFile": "/home/marvsmart/hmi/abcd_latest_/data/video_clips/preview_ch4_c8769a4bb9.mp4",
+      "filename": "preview_ch4_c8769a4bb9.mp4",
+      "machineId": "pi-00de9c0a70",
+      "title": "CH4 2026-11-13 13:08:51",
+      "cameraChannel": "CH4",
+      "durationSec": 3.0,
+      "mimeType": "video/mp4",
+      "sizeBytes": 2030,
+      "createdAt": "2026-11-13T05:08:52Z",
+      "uploadStatus": "failed",
+      "serverId": null,
+      "uploadError": "missing local file",
+      "uploadedAt": "2026-11-13T05:08:53Z"
+    }
+  ]
+}

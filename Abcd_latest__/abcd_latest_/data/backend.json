@@ -1,6 +1,0 @@
-{
-  "backendBaseUrl": "https://hmi.dynacleanindustries.com",
-  "canRequireResponse": true,
-  "cameraAutoSave": true,
-  "cameraClipSec": 1
-}

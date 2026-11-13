@@ -73,6 +73,10 @@ router.post('/', upload.single('video'), async (req, res) => {
     });
     setImmediate(() => {
       persistSavedUpload(file, body).catch((error) => {
+        if (error.code === 'VIDEO_TOO_SMALL') {
+          console.warn(`POST /api/saved-videos: skipped small upload (${error.message})`);
+          return;
+        }
         console.error('POST /api/saved-videos:', error.message);
       });
     });
@@ -107,74 +111,58 @@ router.get('/', async (req, res) => {
     });
   } catch (error) {
     console.error('GET /api/saved-videos:', error.message);
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to list saved videos',
-      error: error.message,
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 });
 
 router.get('/:id/stream', async (req, res) => {
   try {
-    const meta = await resolveStreamMeta(req.params.id);
+    const id = String(req.params.id || '').trim();
+    const meta = await resolveStreamMeta(id);
     if (!meta) {
       return res.status(404).json({ success: false, message: 'Video not found' });
     }
 
-    const pinnedGridFsId = meta.gridFsId;
-    const size = meta.size;
-    const contentType = meta.contentType;
-    const cacheCtl = 'private, max-age=3600';
-    const range = req.headers.range;
-
-    if (range) {
-      const parts = range.replace(/bytes=/, '').split('-');
-      const start = parseInt(parts[0], 10);
-      const end = parts[1] ? parseInt(parts[1], 10) : size - 1;
-      if (Number.isNaN(start) || start >= size) {
-        res.status(416).set('Content-Range', `bytes */${size}`);
-        return res.end();
-      }
-      const chunkEnd = Math.min(end, size - 1);
-      res.status(206);
-      res.set({
-        'Content-Range': `bytes ${start}-${chunkEnd}/${size}`,
-        'Accept-Ranges': 'bytes',
-        'Content-Length': chunkEnd - start + 1,
-        'Content-Type': contentType,
-        'Cache-Control': cacheCtl,
-      });
-      const stream = SavedVideo.openDownloadStream(pinnedGridFsId, {
-        start,
-        end: chunkEnd,
-      });
-      stream.on('error', () => {
-        if (!res.headersSent) res.status(500).end();
-      });
-      stream.pipe(res);
-      return;
+    const doc = await SavedVideo.findById(id);
+    if (!doc) {
+      return res.status(404).json({ success: false, message: 'Video not found' });
     }
 
-    res.set({
-      'Content-Length': size,
-      'Content-Type': contentType,
-      'Accept-Ranges': 'bytes',
-      'Cache-Control': cacheCtl,
-    });
-    const stream = SavedVideo.openDownloadStream(pinnedGridFsId);
-    stream.on('error', () => {
-      if (!res.headersSent) res.status(500).end();
-    });
-    stream.pipe(res);
+    const { getDatabase } = require('../mongodb');
+    const { GridFSBucket } = require('mongodb');
+    const bucket = new GridFSBucket(getDatabase(), { bucketName: 'saved_videos_fs' });
+
+    res.setHeader('Content-Type', meta.contentType);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Content-Length', String(meta.size));
+
+    const range = req.headers.range;
+    if (range) {
+      const m = /^bytes=(\d+)-(\d*)$/.exec(range);
+      if (m) {
+        const start = parseInt(m[1], 10);
+        const end = m[2] ? parseInt(m[2], 10) : meta.size - 1;
+        if (start >= meta.size || end >= meta.size) {
+          res.status(416).end();
+          return;
+        }
+        const chunk = end - start + 1;
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${meta.size}`);
+        res.setHeader('Content-Length', String(chunk));
+        bucket
+          .openDownloadStream(meta.gridFsId, { start, end: end + 1 })
+          .on('error', () => res.end())
+          .pipe(res);
+        return;
+      }
+    }
+
+    bucket.openDownloadStream(meta.gridFsId).on('error', () => res.end()).pipe(res);
   } catch (error) {
     console.error('GET /api/saved-videos/:id/stream:', error.message);
     if (!res.headersSent) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to stream video',
-        error: error.message,
-      });
+      res.status(500).json({ success: false, message: error.message });
     }
   }
 });
