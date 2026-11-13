@@ -8,7 +8,9 @@ import { useCameraVideos } from '../hooks/useHmi32Queries';
 import { useCameraVideoRealtime } from '../hooks/useCameraVideoRealtime';
 import { channelSortKey, inferCameraChannel } from '../utils/cameraVideoSlots';
 import CameraSlotVideo from './CameraSlotVideo';
+import CameraLiveGrid from './CameraLiveGrid';
 import PageLayout from './PageLayout';
+import { useCameraLiveFrames } from '../hooks/useCameraLiveFrames';
 
 const fmtBytes = (n) => {
   const b = Number(n) || 0;
@@ -57,6 +59,7 @@ const CameraVideosPage = () => {
   };
 
   const { live: socketLive } = useCameraVideoRealtime(queryMachine);
+  const { liveSocket, liveTiles } = useCameraLiveFrames(queryMachine);
 
   const { data: videosRaw = [], isLoading, error } = useCameraVideos(queryMachine, {
     pausePolling: socketLive,
@@ -96,8 +99,8 @@ const CameraVideosPage = () => {
     <PageLayout
       title="Camera Videos"
       subtitle={
-        socketLive
-          ? 'Latest 10 min recording per channel (direct play) · Socket.IO'
+        socketLive || liveSocket
+          ? 'Live AHD + MDVR via Socket · clips save to DB on /api/camera-videos/save'
           : 'Latest 10 min recording per channel — Merge old clips for longer history'
       }
       loading={isLoading}
@@ -112,9 +115,22 @@ const CameraVideosPage = () => {
         <div className="hmi32-card__head hmi32-card__head--split">
           <div className="hmi32-card__head-left">
             <svg className="hmi32-card__head-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z" />
+            </svg>
+            <h2>Live preview — AHD + MDVR ({liveTiles.length})</h2>
+          </div>
+        </div>
+        <CameraLiveGrid tiles={liveTiles} socketLive={liveSocket} />
+      </div>
+
+      <div className="hmi32-card">
+        <div className="hmi32-card__head hmi32-card__head--split">
+          <div className="hmi32-card__head-left">
+            <svg className="hmi32-card__head-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M4 6h16M4 10h16M4 14h16M4 18h16" strokeLinecap="round" />
             </svg>
-            <h2>Live camera slots ({videos.length})</h2>
+            <h2>Saved clips ({videos.length})</h2>
           </div>
           <select
             className="hmi32-select"

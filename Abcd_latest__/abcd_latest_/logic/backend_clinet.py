@@ -16,7 +16,13 @@ from urllib.parse import quote, urlencode
 
 def get_backend_base():
     try:
+        from app.config import get_resolved_backend_base_url
+
+        url = get_resolved_backend_base_url()
+        if url:
+            return url
         from app.config import get_backend_base_url
+
         return get_backend_base_url()
     except Exception:
         url = os.environ.get("BACKEND_BASE_URL", "").strip().rstrip("/")
@@ -122,7 +128,8 @@ def post_gps(
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             text = resp.read().decode("utf-8", errors="replace")
-            return 200 <= resp.status < 300, resp.status, text
+            ok = 200 <= resp.status < 300 or resp.status == 202
+            return ok, resp.status, text
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8", errors="replace") if e.fp else ""
         return False, e.code, raw
@@ -236,7 +243,8 @@ def post_hmi32_state(
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             text = resp.read().decode("utf-8", errors="replace")
-            return 200 <= resp.status < 300, resp.status, text
+            ok = 200 <= resp.status < 300 or resp.status == 202
+            return ok, resp.status, text
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8", errors="replace") if e.fp else ""
         return False, e.code, raw
@@ -276,7 +284,8 @@ def post_pi_data(machine_id, payload, doc_type=None, timeout=10):
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             text = resp.read().decode("utf-8", errors="replace")
-            return 200 <= resp.status < 300, resp.status, text
+            ok = 200 <= resp.status < 300 or resp.status == 202
+            return ok, resp.status, text
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8", errors="replace") if e.fp else ""
         return False, e.code, raw
@@ -435,7 +444,10 @@ def post_camera_video_bytes(
     }
     body, ctype = _encode_multipart(fields, "video", video_bytes, name, mime)
 
-    url = f"{base}/api/camera-videos"
+    path = os.environ.get("CAMERA_VIDEO_UPLOAD_PATH", "/api/camera-videos/save").strip()
+    if not path.startswith("/"):
+        path = f"/{path}"
+    url = f"{base}{path}"
     req = urllib.request.Request(
         url,
         data=body,
@@ -445,7 +457,8 @@ def post_camera_video_bytes(
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             text = resp.read().decode("utf-8", errors="replace")
-            return 200 <= resp.status < 300, resp.status, text
+            ok = 200 <= resp.status < 300 or resp.status == 202
+            return ok, resp.status, text
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8", errors="replace") if e.fp else ""
         return False, e.code, raw

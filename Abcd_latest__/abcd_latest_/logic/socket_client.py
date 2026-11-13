@@ -12,6 +12,8 @@ Events emitted (with namespace default '/'):
   - machine:can:gpio        { machineId, ts, cmd, state }
   - machine:error           { machineId, ts, message, severity }
   - machine:a25             { machineId, ts, distance, status, rawData }
+  - machine:camera:frame    { machineId, ts, source, channel, jpeg, width?, height? }
+                            source = ahd | mdvr — website gets camera:live:frame
 
 Env vars (see app.config):
   SOCKET_IO_ENABLED=1         set to "0"/"false" to disable
@@ -222,6 +224,29 @@ def emit_error(message: str, severity: str = "error") -> None:
     }))
 
 
+def emit_camera_frame(
+    source: str,
+    channel: int,
+    jpeg_b64: str,
+    width: Optional[int] = None,
+    height: Optional[int] = None,
+) -> None:
+    """Live preview frame (JPEG base64). Save clips use POST /api/camera-videos/save separately."""
+    src = str(source or "ahd").strip().lower() or "ahd"
+    if src not in ("ahd", "mdvr"):
+        src = "ahd"
+    payload = _envelope({
+        "source": src,
+        "channel": int(channel),
+        "jpeg": str(jpeg_b64 or ""),
+    })
+    if width is not None:
+        payload["width"] = int(width)
+    if height is not None:
+        payload["height"] = int(height)
+    _emit_or_queue("machine:camera:frame", payload)
+
+
 def emit_a25(distance: Any, raw_data: Any = None, status: Any = None) -> None:
     payload = {}
     if distance is not None:
@@ -291,17 +316,33 @@ def _build_client() -> "socketio.Client":
     return sio
 
 
+def _socket_candidate_urls() -> list:
+    try:
+        from app.config import get_backend_candidate_urls, get_socket_io_url
+
+        urls = get_backend_candidate_urls()
+        if urls:
+            return urls
+        one = get_socket_io_url()
+        return [one] if one else []
+    except Exception:
+        one = get_socket_io_url()
+        return [one] if one else []
+
+
 def _run_loop() -> None:
     global _sio
-    url = get_socket_io_url()
-    if not url:
+    candidates = _socket_candidate_urls()
+    if not candidates:
         log("[SOCKET.IO] BACKEND URL not set — create data/backend.json or set BACKEND_BASE_URL")
         return
     path = os.environ.get("SOCKET_IO_PATH", "/socket.io")
     heartbeat_interval = max(5, int(os.environ.get("SOCKET_IO_HEARTBEAT_S", "30")))
     last_hb = 0.0
+    url_index = 0
 
     while not _sio_stop.is_set():
+        url = candidates[url_index % len(candidates)]
         try:
             if _sio is None:
                 _sio = _build_client()
@@ -310,12 +351,14 @@ def _run_loop() -> None:
                     log(f"[SOCKET.IO] connecting to {url}{path}")
                     _sio.connect(url, transports=["websocket", "polling"], socketio_path=path, wait_timeout=10)
                 except Exception as e:
-                    log(f"[SOCKET.IO] connect failed: {e}")
+                    log(f"[SOCKET.IO] connect failed ({url}): {e}")
                     _sio_connected.clear()
                     try:
                         _sio.disconnect()
                     except Exception:
                         pass
+                    _sio = None
+                    url_index = (url_index + 1) % len(candidates)
                     wait_s = 5
                     end = time.monotonic() + wait_s
                     while time.monotonic() < end and not _sio_stop.is_set():

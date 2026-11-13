@@ -41,38 +41,69 @@ const upload = multer({
   },
 });
 
-router.post('/', upload.single('video'), async (req, res) => {
+async function persistCameraUpload(file, body) {
   const t0 = Date.now();
+  const doc = await CameraVideo.upsertFromBuffer({
+    buffer: file.buffer,
+    filename: file.originalname || 'recording.webm',
+    mimeType: file.mimetype,
+    machineId: body.machineId,
+    title: body.title,
+    cameraChannel: body.cameraChannel,
+    durationSec: body.durationSec,
+  });
+  streamMetaCache.delete(String(doc._id));
+  const ms = Date.now() - t0;
+  const slowMs = Number(process.env.CAMERA_VIDEO_SLOW_POST_MS) || 15000;
+  if (ms > slowMs) {
+    console.warn(`[CameraVideo] slow save ${ms}ms ${doc.machineId}/${doc.cameraChannel}`);
+  }
+  emitCameraVideoUpdate(doc);
+  return doc;
+}
+
+/** Pi default: instant 202 — Mongo/GridFS in background; website gets camera:video:update when ready. */
+router.post('/save', upload.single('video'), async (req, res) => {
   try {
-    if (!req.file || !req.file.buffer?.length) {
+    if (!req.file?.buffer?.length) {
       return res.status(400).json({ success: false, message: 'video file is required' });
     }
-
-    const doc = await CameraVideo.upsertFromBuffer({
-      buffer: req.file.buffer,
-      filename: req.file.originalname || 'recording.webm',
-      mimeType: req.file.mimetype,
-      machineId: req.body.machineId,
-      title: req.body.title,
-      cameraChannel: req.body.cameraChannel,
-      durationSec: req.body.durationSec,
+    const file = {
+      buffer: Buffer.from(req.file.buffer),
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+    };
+    const body = { ...req.body };
+    res.status(202).json({
+      success: true,
+      message: 'Video save accepted — processing in background',
     });
+    setImmediate(() => {
+      persistCameraUpload(file, body).catch((error) => {
+        console.error('POST /api/camera-videos/save:', error.message);
+      });
+    });
+    return;
+  } catch (error) {
+    console.error('POST /api/camera-videos/save:', error.message);
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to accept video',
+    });
+  }
+});
 
-    streamMetaCache.delete(String(doc._id));
-
-    const ms = Date.now() - t0;
-    const slowMs = Number(process.env.CAMERA_VIDEO_SLOW_POST_MS) || 15000;
-    if (ms > slowMs) {
-      console.warn(`[CameraVideo] slow POST ${ms}ms ${doc.machineId}/${doc.cameraChannel}`);
+router.post('/', upload.single('video'), async (req, res) => {
+  try {
+    if (!req.file?.buffer?.length) {
+      return res.status(400).json({ success: false, message: 'video file is required' });
     }
-
-    res.status(201).json({
+    const doc = await persistCameraUpload(req.file, req.body);
+    return res.status(201).json({
       success: true,
       message: 'Video accepted',
       data: CameraVideo.serialize(doc),
     });
-    setImmediate(() => emitCameraVideoUpdate(doc));
-    return;
   } catch (error) {
     console.error('POST /api/camera-videos:', error.message);
     return res.status(500).json({

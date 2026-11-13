@@ -1430,6 +1430,35 @@ body {
   padding: 1rem 1.1rem 1.2rem;
 }
 
+.hmi32-live-frame-wrap {
+  position: relative;
+  min-height: 160px;
+  background: #111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hmi32-live-frame {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  display: block;
+}
+
+.hmi32-live-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #fff;
+  background: #dc2626;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
 .hmi32-video-item {
   border: 1px solid #e5e7eb;
   border-radius: 12px;

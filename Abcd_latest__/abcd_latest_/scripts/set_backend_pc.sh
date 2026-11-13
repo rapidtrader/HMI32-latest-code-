@@ -3,7 +3,7 @@
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 CFG="$ROOT/data/backend.json"
-IP="${1:-100.90.128.80}"
+IP="${1:-192.168.1.71}"
 PORT="${2:-4002}"
 URL="http://${IP}:${PORT}"
 

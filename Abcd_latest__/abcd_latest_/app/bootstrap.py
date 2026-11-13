@@ -152,10 +152,23 @@ def _configure_qt_env():
 def run():
     ensure_paths()
     backend_url = ensure_backend_url_configured()
+    try:
+        from app.config import probe_backend_reachable
+
+        probed = probe_backend_reachable()
+        if probed:
+            backend_url = probed
+    except Exception as exc:
+        print(f"[CONFIG] Backend probe skipped: {exc}")
     if backend_url:
+        upload_path = os.environ.get(
+            "CAMERA_VIDEO_UPLOAD_PATH", "/api/camera-videos/save"
+        ).strip()
+        if not upload_path.startswith("/"):
+            upload_path = f"/{upload_path}"
         print(f"[CONFIG] Backend URL: {backend_url}")
         print(f"[CONFIG] API base: {backend_url}/api/")
-        print(f"[CONFIG] Camera clips upload: POST {backend_url}/api/camera-videos")
+        print(f"[CONFIG] Camera clips upload: POST {backend_url}{upload_path}")
         try:
             from logic.camera_videos_store import STORE_PATH
 

@@ -113,11 +113,71 @@ def get_backend_base_url() -> str:
     return ""
 
 
+def get_backend_candidate_urls() -> list:
+    """Primary + backendFallbackUrls[] from data/backend.json (Tailscale then LAN, etc.)."""
+    urls: list = []
+    primary = get_backend_base_url()
+    if primary:
+        urls.append(primary)
+
+    raw_list = _read_backend_config_data().get("backendFallbackUrls") or []
+    if isinstance(raw_list, (list, tuple)):
+        for raw in raw_list:
+            u = _normalize_backend_base(str(raw))
+            if u and u not in urls:
+                urls.append(u)
+    return urls
+
+
+_resolved_backend_url: str = ""
+
+
+def get_resolved_backend_base_url() -> str:
+    """Cached URL after probe_backend_reachable() — else primary from config."""
+    if _resolved_backend_url:
+        return _resolved_backend_url
+    return get_backend_base_url()
+
+
 def get_socket_io_url() -> str:
     explicit = os.environ.get("SOCKET_IO_URL", "").strip()
     if explicit:
         return explicit.rstrip("/")
+    resolved = get_resolved_backend_base_url()
+    if resolved:
+        return resolved
     return get_backend_base_url()
+
+
+def probe_backend_reachable(timeout: float = 4.0) -> str:
+    """
+    Try GET /api/health on each candidate; set global resolved URL for socket + uploads.
+    Pi on MDVR LAN (192.168.31.x) often cannot reach PC WiFi (192.168.1.x) — use Tailscale first.
+    """
+    global _resolved_backend_url
+    import urllib.error
+    import urllib.request
+
+    candidates = get_backend_candidate_urls()
+    if not candidates:
+        return ""
+
+    to = max(1.0, float(timeout))
+    for base in candidates:
+        url = f"{base.rstrip('/')}/api/health"
+        try:
+            req = urllib.request.Request(url, method="GET")
+            with urllib.request.urlopen(req, timeout=to) as resp:
+                if resp.status in (200, 503):
+                    _resolved_backend_url = base
+                    if base != candidates[0]:
+                        print(f"[CONFIG] Backend reachable via fallback: {base}")
+                    return base
+        except (urllib.error.URLError, OSError, TimeoutError) as exc:
+            print(f"[CONFIG] Backend probe failed {base}: {exc}")
+
+    _resolved_backend_url = candidates[0]
+    return candidates[0]
 
 def get_socket_io_enabled():
     val = os.environ.get("SOCKET_IO_ENABLED", "1").strip().lower()

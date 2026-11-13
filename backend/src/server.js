@@ -51,7 +51,7 @@ const io = new SocketIOServer(httpServer, {
   cors: { origin: corsOrigins, credentials: true },
   transports: ['polling', 'websocket'],
 });
-const { setIo } = require('./realtime');
+const { setIo, emitCameraLiveFrame } = require('./realtime');
 setIo(io);
 
 const normalizeGps = (gps) => {
@@ -187,6 +187,12 @@ const handleMachineEvent = async (event, payload) => {
 io.on('connection', (socket) => {
   socket.onAny((event, payload) => {
     if (typeof event !== 'string' || !event.startsWith('machine:')) return;
+    if (event === 'machine:camera:frame') {
+      if (payload && typeof payload.jpeg === 'string' && payload.jpeg.length > 100) {
+        emitCameraLiveFrame(payload);
+      }
+      return;
+    }
     handleMachineEvent(event, payload).catch(() => {});
   });
 });

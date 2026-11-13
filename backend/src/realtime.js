@@ -33,9 +33,26 @@ function emitCameraVideoDeleted({ id, machineId }) {
   });
 }
 
+/** Pi → browser live JPEG preview (not stored in Mongo). */
+function emitCameraLiveFrame(payload) {
+  if (!io || !payload?.jpeg) return;
+  const machineId = String(payload.machineId || '').trim();
+  if (!machineId) return;
+  io.emit('camera:live:frame', {
+    machineId,
+    source: String(payload.source || 'ahd').toLowerCase(),
+    channel: Number(payload.channel) || 0,
+    jpeg: payload.jpeg,
+    width: payload.width,
+    height: payload.height,
+    tsEpoch: payload.tsEpoch || Date.now(),
+  });
+}
+
 module.exports = {
   setIo,
   emitCameraVideoUpdate,
   emitCameraVideoSerialized,
   emitCameraVideoDeleted,
+  emitCameraLiveFrame,
 };

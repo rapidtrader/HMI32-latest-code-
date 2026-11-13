@@ -134,6 +134,12 @@ class MdvrVideoItem(QQuickPaintedItem):
         if image is None or image.isNull():
             return
         self._pending = image
+        try:
+            from logic.camera_live_socket import push_preview_frame
+
+            push_preview_frame("mdvr", channel_id, image)
+        except Exception:
+            pass
         if not self._first_logged:
             self._first_logged = True
             print(f"[MDVR] CH{channel_id} first frame {image.width()}x{image.height()}")

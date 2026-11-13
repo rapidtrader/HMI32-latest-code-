@@ -137,6 +137,12 @@ class GStreamerVideoItem(QQuickPaintedItem):
             feed_clip_frame(camera_id, image)
         except Exception as exc:
             print(f"[CAMERA-VIDEO] feed_clip_frame CH{camera_id}: {exc}")
+        try:
+            from logic.camera_live_socket import push_preview_frame
+
+            push_preview_frame("ahd", camera_id, image)
+        except Exception:
+            pass
         if self.isVisible() and not self._ui_timer.isActive():
             self._ui_timer.start()
 
