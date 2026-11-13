@@ -13,6 +13,7 @@ export const APP_ROUTES = {
   REPORTS: '/app/reports',
   CAMERA_VIDEOS: '/app/camera-videos',
   SAVED_VIDEOS: '/app/saved-videos',
+  GPS: '/app/gps',
 };
 
 /** Convenience aliases used across the UI */
@@ -25,6 +26,7 @@ export const ROUTES = {
   REPORTS: APP_ROUTES.REPORTS,
   CAMERA_VIDEOS: APP_ROUTES.CAMERA_VIDEOS,
   SAVED_VIDEOS: APP_ROUTES.SAVED_VIDEOS,
+  GPS: APP_ROUTES.GPS,
 };
 
 /** Old bookmarks → new paths */
@@ -36,6 +38,7 @@ export const LEGACY_REDIRECTS = [
   { from: '/reports', to: APP_ROUTES.REPORTS },
   { from: '/camera-videos', to: APP_ROUTES.CAMERA_VIDEOS },
   { from: '/saved-videos', to: APP_ROUTES.SAVED_VIDEOS },
+  { from: '/gps', to: APP_ROUTES.GPS },
 ];
 
 export function defaultAuthedPath() {

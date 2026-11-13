@@ -1,5 +1,6 @@
 import json
 import os
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -7,6 +8,10 @@ import urllib.request
 from app.config import MACHINE_INFO_FILE, log
 from logic.backend_clinet import get_backend_base
 from logic.machine_identity import read_or_create_machine_id
+
+_CONFIG_404_BACKOFF_SEC = 600
+_config_404_until = 0.0
+_auto_register_tried = False
 
 
 def _read_file() -> dict:
@@ -46,9 +51,34 @@ def load_local() -> dict:
     return _read_file()
 
 
+def _try_auto_register_local(local: dict, machine_id: str) -> None:
+    """After 404, PUT upsert once when operator already saved Machine Info on the Pi."""
+    global _auto_register_tried
+    if _auto_register_tried or not has_password():
+        return
+    _auto_register_tried = True
+    client = str(local.get("clientName") or local.get("client_name") or "HMI").strip() or "HMI"
+    loc = str(local.get("location") or "").strip()
+    plate = str(local.get("vehiclePlateNo") or local.get("vehicle_plate_no") or "").strip()
+    pwd = str(local.get("password") or "").strip()
+    if not pwd:
+        return
+    res = update_on_api(machine_id, client, loc, plate, pwd)
+    if res == "success":
+        log("Machine info registered on server (was 404)")
+    else:
+        log("Machine auto-register failed — save Machine Info on HMI manually")
+
+
 def sync_from_api() -> None:
+    global _config_404_until
+    if time.time() < _config_404_until:
+        return
     local = _read_file()
     machine_id = (local.get("machineId") or local.get("machine_id") or "").strip()
+    if not machine_id:
+        machine_id = read_or_create_machine_id()
+        local = {**local, "machineId": machine_id}
     if not machine_id:
         return
     base = get_backend_base()
@@ -85,6 +115,17 @@ def sync_from_api() -> None:
             }
             save_local(merged)
             log("Machine info synced from API")
+            _config_404_until = 0.0
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            _config_404_until = time.time() + _CONFIG_404_BACKOFF_SEC
+            _try_auto_register_local(local, machine_id)
+            if not _auto_register_tried or not has_password():
+                log(
+                    "sync_from_api: machine not on server — open Machine Info on HMI and Save (404, retry in 10 min)"
+                )
+            return
+        log(f"sync_from_api failed: HTTP Error {exc.code}: {exc.reason}")
     except Exception as exc:
         log(f"sync_from_api failed: {exc}")
 

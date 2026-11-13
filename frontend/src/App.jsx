@@ -10,6 +10,7 @@ import MachineInfoPage from './components/MachineInfoPage';
 import ReportsPage from './components/ReportsPage';
 import CameraVideosPage from './components/CameraVideosPage';
 import SavedVideosPage from './components/SavedVideosPage';
+import GpsTrackingPage from './components/GpsTrackingPage';
 import {
   AUTH_ROUTES,
   APP_ROUTES,
@@ -51,6 +52,7 @@ const App = () => {
         <Route path="reports" element={<ReportsPage />} />
         <Route path="camera-videos" element={<CameraVideosPage />} />
         <Route path="saved-videos" element={<SavedVideosPage />} />
+        <Route path="gps" element={<GpsTrackingPage />} />
       </Route>
 
       {LEGACY_REDIRECTS.map(({ from, to }) => (

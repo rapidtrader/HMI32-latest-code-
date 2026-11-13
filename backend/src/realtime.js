@@ -50,6 +50,11 @@ function emitSavedVideoNew(doc) {
   });
 }
 
+function emitGpsLocation(point) {
+  if (!io || !point?.deviceId) return;
+  io.emit('gps:location', point);
+}
+
 function emitCameraLiveFrame(payload) {
   if (!io || !payload?.jpeg) return;
   const machineId = String(payload.machineId || '').trim();
@@ -72,4 +77,5 @@ module.exports = {
   emitCameraVideoDeleted,
   emitCameraLiveFrame,
   emitSavedVideoNew,
+  emitGpsLocation,
 };

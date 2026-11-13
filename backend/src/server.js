@@ -13,6 +13,10 @@ const RuntimeData = require('./models/RuntimeData');
 const { registerUser, loginUser, verifyToken, isSignupAllowed } = require('./services/authService');
 const cameraVideosRouter = require('./routes/cameraVideos');
 const savedVideosRouter = require('./routes/savedVideos');
+const gpsRouter = require('./routes/gps');
+const piDataRouter = require('./routes/piData');
+const GpsLocation = require('./models/GpsLocation');
+const PiData = require('./models/PiData');
 const CameraVideo = require('./models/CameraVideo');
 const SavedVideo = require('./models/SavedVideo');
 const { verifyFfmpegAtStartup } = require('./utils/videoConcat');
@@ -49,6 +53,8 @@ app.use((req, res, next) => {
 
 app.use('/api/camera-videos', cameraVideosRouter);
 app.use('/api/saved-videos', savedVideosRouter);
+app.use('/api/gps', gpsRouter);
+app.use('/api/pi-data', piDataRouter);
 
 const io = new SocketIOServer(httpServer, {
   cors: { origin: corsOrigins, credentials: true },
@@ -652,6 +658,9 @@ const startServer = async () => {
     await RuntimeData.ensureIndexes().catch((e) => console.warn('RuntimeData index warn:', e.message));
     await CameraVideo.ensureIndexes().catch((e) => console.warn('CameraVideo index warn:', e.message));
     await SavedVideo.ensureIndexes().catch((e) => console.warn('SavedVideo index warn:', e.message));
+    await GpsLocation.ensureIndexes().catch((e) => console.warn('GpsLocation index warn:', e.message));
+    await PiData.ensureIndexes().catch((e) => console.warn('PiData index warn:', e.message));
+    await GpsLocation.replaySpoolQueue().catch((e) => console.warn('Gps spool replay:', e.message));
     await verifyFfmpegAtStartup().catch(() => {});
     apiReady = true;
     console.log('[api] Ready — accepting /api requests');

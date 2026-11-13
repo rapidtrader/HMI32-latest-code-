@@ -446,6 +446,33 @@ def is_preview_live(channel_id: int) -> bool:
         return False
     return getattr(item, "_pipeline", None) is not None
 
+def _segment_ok_for_upload(
+    rec: "PreviewClipRecorder", path: str, duration: float
+) -> bool:
+    """Skip near-empty segments (~11 KB) when preview barely feeds frames (CH1/3/4)."""
+    frames = int(getattr(rec, "_frames_written", 0) or 0)
+    fps = max(1, int(getattr(rec, "fps", 8) or 8))
+    need_frames = max(24, int(duration * fps * 0.12))
+    if frames < need_frames:
+        print(
+            f"[CAMERA-VIDEO] CH{rec.channel_id} skip upload: "
+            f"{frames} frames (need ~{need_frames} for {duration:.0f}s)"
+        )
+        return False
+    try:
+        sz = os.path.getsize(path)
+    except OSError:
+        return False
+    min_bytes = max(50_000, int(duration * 400))
+    if sz < min_bytes:
+        print(
+            f"[CAMERA-VIDEO] CH{rec.channel_id} skip upload: "
+            f"{sz} B (need ~{min_bytes} B)"
+        )
+        return False
+    return True
+
+
 def _publish_clip(channel_id: int, path: str, duration: float) -> None:
     from logic.camera_auto_save import kick_sync_background, push_clip_to_server
 
@@ -594,7 +621,13 @@ class RollingCaptureManager:
         path, duration, err = rec.finish()
 
         if path and publish:
-            _publish_clip(channel_id, path, duration)
+            if _segment_ok_for_upload(rec, path, duration):
+                _publish_clip(channel_id, path, duration)
+            else:
+                try:
+                    os.remove(path)
+                except OSError:
+                    pass
         elif path:
             print(
                 f"[CAMERA-VIDEO] CH{channel_id} recording finalized "

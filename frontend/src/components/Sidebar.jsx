@@ -28,6 +28,11 @@ const navItems = [
     label: 'Saved Videos',
     icon: 'M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4',
   },
+  {
+    path: ROUTES.GPS,
+    label: 'GPS Tracking',
+    icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z',
+  },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {

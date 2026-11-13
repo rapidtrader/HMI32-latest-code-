@@ -182,7 +182,24 @@ def push_gps_reading(
     extra = {"timestamp": ts} if ts else None
 
     if post_api_gps:
-        ok, code, text = post_gps(mid, lat, lon, extra=extra, timeout=timeout)
+        try:
+            speed = float(reading.get("speed_kmh") or reading.get("speed") or 0)
+        except (TypeError, ValueError):
+            speed = 0.0
+        try:
+            altitude = float(reading.get("altitude") or 0)
+        except (TypeError, ValueError):
+            altitude = 0.0
+        if extra is None:
+            extra = {}
+        elif not isinstance(extra, dict):
+            extra = {}
+        for key in ("satellites", "fix_valid", "status", "speed_kmh"):
+            if key in reading and reading[key] is not None:
+                extra[key] = reading[key]
+        ok, code, text = post_gps(
+            mid, lat, lon, speed=speed, altitude=altitude, extra=extra, timeout=timeout
+        )
         out["ok_gps"] = ok
         out["gps_status"] = code
         out["gps_body"] = text[:500] if text else ""
