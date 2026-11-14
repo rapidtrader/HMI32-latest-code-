@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2026-11-14T11:37:09.458630Z",
+  "fix_valid": true,
+  "latitude": 28.59394203333333,
+  "longitude": 77.02549555,
+  "timestamp": "2026-11-14T11:15:20Z",
+  "machine_id": "pi-d2f571cc6a",
+  "backend": {
+    "ok_gps": true,
+    "ok_pi": true,
+    "errors": [],
+    "gps_status": 200,
+    "gps_body": "{\"success\":true,\"skipped\":true,\"duplicate\":true,\"message\":\"Same latitude/longitude as last point \u2014 not saved\",\"data\":{\"id\":\"6af842adb272267da953b549\",\"deviceId\":\"pi-d2f571cc6a\",\"latitude\":28.593941566666665,\"longitude\":77.025496,\"lat\":28.593941566666665,\"lng\":77.025496,\"speed\":0,\"altitude\":206.3,\"satellites\":30,\"fixValid\":true,\"recorded_at\":\"2026-11-14T11:14:53.000Z\",\"created_at\":\"2026-11-14T11:14:53.944Z\",\"source\":\"pi\"}}",
+    "pi_status": 201,
+    "pi_body": "{\"success\":true,\"data\":{\"id\":\"6af847e5b272267da953b7fa\"}}"
+  },
+  "speed_kmh": 0.0,
+  "altitude": 206.5,
+  "satellites": 30,
+  "status": "serial error: [Errno 2] could not open port /dev/ttyUSB1: [Errno 2] No such file or directory: '/dev/ttyUSB1'"
+}
