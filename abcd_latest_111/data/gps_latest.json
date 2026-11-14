@@ -1,0 +1,21 @@
+{
+  "recorded_at": "2026-11-14T09:50:48.707667Z",
+  "fix_valid": true,
+  "latitude": 28.593965733333334,
+  "longitude": 77.02548006666666,
+  "timestamp": "2026-11-14T09:50:47Z",
+  "machine_id": "pi-d2f571cc6a",
+  "backend": {
+    "ok_gps": true,
+    "ok_pi": true,
+    "errors": [],
+    "gps_status": 200,
+    "gps_body": "{\"success\":true,\"skipped\":true,\"duplicate\":true,\"message\":\"Same latitude/longitude as last point \u2014 not saved\",\"data\":{\"id\":\"6af82e6fb272267da953ae68\",\"deviceId\":\"pi-d2f571cc6a\",\"latitude\":28.593965650000005,\"longitude\":77.02547951666666,\"lat\":28.593965650000005,\"lng\":77.02547951666666,\"speed\":0,\"altitude\":212.3,\"satellites\":30,\"fixValid\":true,\"recorded_at\":\"2026-11-14T09:48:30.000Z\",\"created_at\":\"2026-11-14T09:48:31.613Z\",\"source\":\"pi\"}}",
+    "pi_status": 201,
+    "pi_body": "{\"success\":true,\"data\":{\"id\":\"6af82ef9b272267da953aea9\"}}"
+  },
+  "speed_kmh": 0.0,
+  "altitude": 212.3,
+  "satellites": 30,
+  "status": "tracking on /dev/ttyUSB1 \u2014 GNSS on, 30 satellites (fix pending)"
+}
