@@ -164,7 +164,7 @@ def main() -> int:
                 _color(
                     use_color,
                     RED,
-                    "CAN check: can0 is DOWN — run: ./reset_can.sh",
+                    "CAN check: can0 is DOWN — run: sh reset_can.sh",
                 )
             )
             print("  (candump also shows: read: Network is down)")

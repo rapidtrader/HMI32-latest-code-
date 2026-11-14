@@ -58,9 +58,24 @@ Rectangle {
         }
     }
 
+    function setPollingActive(active) {
+        if (typeof machineBridge !== "undefined")
+            machineBridge.setPcbPlateInputPollingEnabled(active)
+    }
+
     Component.onCompleted: {
         refreshAllStates()
+        setPollingActive(true)
         pollTimer.start()
+    }
+
+    Component.onDestruction: setPollingActive(false)
+
+    Connections {
+        target: appController
+        function onPageChanged() {
+            pcbPlateRoot.setPollingActive(appController.currentPage === "PcbPlateInputsPage")
+        }
     }
 
     Connections {
@@ -70,7 +85,7 @@ Rectangle {
 
     Timer {
         id: pollTimer
-        interval: 1000
+        interval: 150
         repeat: true
         running: false
         onTriggered: pcbPlateRoot.refreshAllStates()

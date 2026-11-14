@@ -62,6 +62,7 @@ from hardware.digital_inputs import (
     is_digital_input_cmd,
     qml_rows,
 )
+from hardware.digital_input_poll import set_pcb_plate_polling
 
 try:
     from logic.socket_client import (
@@ -792,6 +793,11 @@ class MachineBridge(QObject):
     @pyqtSlot(result="QVariantList")
     def getDigitalInputRows(self):
         return qml_rows()
+
+    @pyqtSlot(bool)
+    def setPcbPlateInputPollingEnabled(self, enabled: bool):
+        """On PCB Plate page: poll F_IN via CAN 0x200 for fast green/red updates."""
+        set_pcb_plate_polling(enabled)
 
     def _refresh_states(self):
         self.litterStateChanged.emit()

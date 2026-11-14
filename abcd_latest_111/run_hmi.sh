@@ -25,6 +25,8 @@ fi
 
 if [ -x "$DIR/reset_can.sh" ]; then
   "$DIR/reset_can.sh" || true
+elif [ -f "$DIR/reset_can.sh" ]; then
+  sh "$DIR/reset_can.sh" || true
 fi
 
 exec python3 main_pyqt5.py "$@"

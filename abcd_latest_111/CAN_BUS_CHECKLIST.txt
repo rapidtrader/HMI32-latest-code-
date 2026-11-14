@@ -1,0 +1,37 @@
+Pi candump 15s EMPTY — what it means
+====================================
+
+Pi can0 is OK (ERROR-ACTIVE, 0 errors). Empty candump = NO frame from STM32 reached Pi.
+
+STM32 firmware (CAN_PROJECT_3) should send within ~1s of reset:
+  - 0x203 test A25 x3
+  - 0x202 boot 55 AA x3
+  - then every 200ms 0x205, every 1s one 0x202 GPIO
+
+CAN pins on MCU (from stm32f4xx_hal_msp.c):
+  PD0 = CAN1_RX
+  PD1 = CAN1_TX
+  -> must go to transceiver TXD/RXD, then CANH/CANL to Pi.
+
+Checklist (in order)
+--------------------
+[ ] STM32 board POWER on (same session as Pi test), reset once after flash
+[ ] Common GND: Pi CAN ground = STM32 / transceiver ground
+[ ] CANH to CANH, CANL to CANL (try swap ONLY if still dead after all else)
+[ ] 120 ohm termination at BOTH bus ends (Pi HMI + far end); remove extra 120R mid-bus
+[ ] Transceiver STB/nEN pin: NOT in standby (see chip datasheet — usually GND = normal)
+[ ] Pi can0 wired to same twisted pair as STM32 (not a different CAN port / unused header)
+[ ] After flash, run flash_firmware.bat without verify; no CubeIDE debug attached
+
+Firmware alive WITHOUT CAN (LED)
+--------------------------------
+PC6 toggles ~500ms in main loop = code running → fix wiring / transceiver / bitrate.
+PC6 fast blink ~100ms = Error_Handler (CAN_Start failed, etc.) → debug in CubeIDE.
+
+Pi quick tests
+--------------
+  sh reset_can.sh
+  timeout 15 candump -t a can0          # expect any 201-205 from STM32
+  ./can_probe_dump.sh                    # sends 0x200, looks for 0x202 reply
+
+Bitrate: Pi 125000, STM32 Prescaler 21 (125 kbit/s).

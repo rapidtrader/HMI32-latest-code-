@@ -1,7 +1,7 @@
 #!/bin/sh
 # Run candump and cansend together (common mistake: cansend after candump stopped).
 DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
-"$DIR/reset_can.sh" || exit 1
+sh "$DIR/reset_can.sh" || exit 1
 
 IF=can0
 LOG="/tmp/can_probe_$$.log"
@@ -13,9 +13,12 @@ timeout 8 candump -t a "$IF" >"$LOG" 2>&1 &
 DUMP_PID=$!
 sleep 0.3
 
-cansend "$IF" 200#0101 2>&1 || CS1=$?
+CS1="ok"
+CS2="ok"
+cansend "$IF" 200#0101 2>&1 || CS1="FAIL"
 sleep 0.3
-cansend "$IF" 200#0100 2>&1 || CS2=$?
+cansend "$IF" 200#0100 2>&1 || CS2="FAIL"
+echo "cansend vacuum ON=${CS1} OFF=${CS2}"
 
 wait "$DUMP_PID" 2>/dev/null || true
 

@@ -28,6 +28,8 @@ uint32_t distance_sum = 0;
 
 uint32_t lastDistanceSendTime = 0;
 uint32_t lastPa0SendTime = 0;
+uint32_t lastHeartbeatLedMs = 0;
+uint32_t lastFinBurstTime = 0;
 
 /*
   A25 Sensor UART:
@@ -106,9 +108,8 @@ uint8_t gpioStates[28];
 const uint8_t allCommands[] = {
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
     0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
-    0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B,
-    0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A,
-    0x3B, 0x3C, 0x3D, 0x3E, 0x3F, 0x40
+    0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B
+    /* F_IN 0x31–0x40: sent in 250ms burst below (faster HMI) */
 };
 
 const uint8_t totalCommands = sizeof(allCommands) / sizeof(allCommands[0]);
@@ -850,10 +851,27 @@ int main(void)
 
     while (1)
     {
+        /* ~500ms toggle on PC6 = firmware running; ~100ms = Error_Handler */
+        if (HAL_GetTick() - lastHeartbeatLedMs >= 500)
+        {
+            lastHeartbeatLedMs = HAL_GetTick();
+            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
+        }
+
         CAN_RecoverFromBusOff();
         CAN_Poll_Receive();
         Process_Front_Up_Sequence();
         Read_A25_Sensor();
+
+        /* F_IN01–16: burst every 250ms for responsive PCB plate UI */
+        if (HAL_GetTick() - lastFinBurstTime >= 250)
+        {
+            lastFinBurstTime = HAL_GetTick();
+            for (uint8_t finCmd = 0x31; finCmd <= 0x40; finCmd++)
+            {
+                CAN_Send_GPIO_Status(finCmd, Get_Field_Digital_Input_State(finCmd));
+            }
+        }
 
         // Periodic PA0 analog read and send every 200ms
         if (HAL_GetTick() - lastPa0SendTime >= 200)
