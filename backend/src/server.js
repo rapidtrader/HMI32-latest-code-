@@ -15,6 +15,16 @@ const cameraVideosRouter = require('./routes/cameraVideos');
 const savedVideosRouter = require('./routes/savedVideos');
 const gpsRouter = require('./routes/gps');
 const piDataRouter = require('./routes/piData');
+const sweepingProjectsRouter = require('./routes/sweepingProjects');
+const SweepingProject = require('./models/SweepingProject');
+const sweepingMachinesRouter = require('./routes/sweepingMachines');
+const SweepingMachine = require('./models/SweepingMachine');
+const sweepingRoadsRouter = require('./routes/sweepingRoads');
+const SweepingRoad = require('./models/SweepingRoad');
+const sweepingDailyPlansRouter = require('./routes/sweepingDailyPlans');
+const SweepingDailyPlan = require('./models/SweepingDailyPlan');
+const sweepingMachineTrackingRouter = require('./routes/sweepingMachineTracking');
+const sweepingPlanVsActualRouter = require('./routes/sweepingPlanVsActual');
 const GpsLocation = require('./models/GpsLocation');
 const PiData = require('./models/PiData');
 const CameraVideo = require('./models/CameraVideo');
@@ -55,6 +65,12 @@ app.use('/api/camera-videos', cameraVideosRouter);
 app.use('/api/saved-videos', savedVideosRouter);
 app.use('/api/gps', gpsRouter);
 app.use('/api/pi-data', piDataRouter);
+app.use('/api/sweeping/projects', sweepingProjectsRouter);
+app.use('/api/sweeping/machines', sweepingMachinesRouter);
+app.use('/api/sweeping/roads', sweepingRoadsRouter);
+app.use('/api/sweeping/daily-plans', sweepingDailyPlansRouter);
+app.use('/api/sweeping/machine-tracking', sweepingMachineTrackingRouter);
+app.use('/api/sweeping/plan-vs-actual', sweepingPlanVsActualRouter);
 
 const io = new SocketIOServer(httpServer, {
   cors: { origin: corsOrigins, credentials: true },
@@ -660,6 +676,10 @@ const startServer = async () => {
     await SavedVideo.ensureIndexes().catch((e) => console.warn('SavedVideo index warn:', e.message));
     await GpsLocation.ensureIndexes().catch((e) => console.warn('GpsLocation index warn:', e.message));
     await PiData.ensureIndexes().catch((e) => console.warn('PiData index warn:', e.message));
+    await SweepingProject.ensureIndexes().catch((e) => console.warn('SweepingProject index warn:', e.message));
+    await SweepingMachine.ensureIndexes().catch((e) => console.warn('SweepingMachine index warn:', e.message));
+    await SweepingRoad.ensureIndexes().catch((e) => console.warn('SweepingRoad index warn:', e.message));
+    await SweepingDailyPlan.ensureIndexes().catch((e) => console.warn('SweepingDailyPlan index warn:', e.message));
     await GpsLocation.replaySpoolQueue().catch((e) => console.warn('Gps spool replay:', e.message));
     await verifyFfmpegAtStartup().catch(() => {});
     apiReady = true;

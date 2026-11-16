@@ -14,6 +14,13 @@ export const APP_ROUTES = {
   CAMERA_VIDEOS: '/app/camera-videos',
   SAVED_VIDEOS: '/app/saved-videos',
   GPS: '/app/gps',
+  SWEEPING: '/app/sweeping-mgmt',
+  SWEEPING_PROJECT: '/app/sweeping-mgmt/project',
+  SWEEPING_MACHINES: '/app/sweeping-mgmt/machines',
+  SWEEPING_ROADS: '/app/sweeping-mgmt/roads',
+  SWEEPING_DAILY_PLAN: '/app/sweeping-mgmt/daily-plan',
+  SWEEPING_MACHINE_TRACKING: '/app/sweeping-mgmt/machine-tracking',
+  SWEEPING_PLAN_VS_ACTUAL: '/app/sweeping-mgmt/plan-vs-actual',
 };
 
 /** Convenience aliases used across the UI */
@@ -27,6 +34,13 @@ export const ROUTES = {
   CAMERA_VIDEOS: APP_ROUTES.CAMERA_VIDEOS,
   SAVED_VIDEOS: APP_ROUTES.SAVED_VIDEOS,
   GPS: APP_ROUTES.GPS,
+  SWEEPING: APP_ROUTES.SWEEPING,
+  SWEEPING_PROJECT: APP_ROUTES.SWEEPING_PROJECT,
+  SWEEPING_MACHINES: APP_ROUTES.SWEEPING_MACHINES,
+  SWEEPING_ROADS: APP_ROUTES.SWEEPING_ROADS,
+  SWEEPING_DAILY_PLAN: APP_ROUTES.SWEEPING_DAILY_PLAN,
+  SWEEPING_MACHINE_TRACKING: APP_ROUTES.SWEEPING_MACHINE_TRACKING,
+  SWEEPING_PLAN_VS_ACTUAL: APP_ROUTES.SWEEPING_PLAN_VS_ACTUAL,
 };
 
 /** Old bookmarks → new paths */

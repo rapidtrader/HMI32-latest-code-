@@ -1,4 +1,5 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { ROUTES } from '../routes/paths';
 
@@ -33,7 +34,89 @@ const navItems = [
     label: 'GPS Tracking',
     icon: 'M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z M15 11a3 3 0 11-6 0 3 3 0 016 0z',
   },
+  {
+    id: 'sweeping-mgmt',
+    label: 'Sweeping Mgmt',
+    icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4',
+    children: [
+      { path: ROUTES.SWEEPING_PROJECT, label: 'Project' },
+      { path: ROUTES.SWEEPING_MACHINES, label: 'Machines' },
+      { path: ROUTES.SWEEPING_ROADS, label: 'Roads' },
+      { path: ROUTES.SWEEPING_DAILY_PLAN, label: 'Daily Plan' },
+      { path: ROUTES.SWEEPING_MACHINE_TRACKING, label: 'Machine Tracking' },
+      { path: ROUTES.SWEEPING_PLAN_VS_ACTUAL, label: 'Plan vs Actual' },
+    ],
+  },
 ];
+
+const SidebarNavLink = ({ item, onClose }) => (
+  <NavLink
+    to={item.path}
+    onClick={onClose}
+    className={({ isActive }) =>
+      `app-sidebar__link ${isActive ? 'app-sidebar__link--active' : ''}`
+    }
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+      <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+    </svg>
+    <span>{item.label}</span>
+  </NavLink>
+);
+
+const SidebarNavGroup = ({ item, onClose }) => {
+  const { pathname } = useLocation();
+  const childActive = item.children.some(
+    (child) => pathname === child.path || pathname.startsWith(`${child.path}/`),
+  );
+  const [open, setOpen] = useState(childActive);
+
+  useEffect(() => {
+    if (childActive) setOpen(true);
+  }, [childActive]);
+
+  const groupActive = childActive;
+
+  return (
+    <div className={`app-sidebar__group ${open ? 'app-sidebar__group--open' : ''}`}>
+      <button
+        type="button"
+        className={`app-sidebar__link app-sidebar__group-toggle ${groupActive ? 'app-sidebar__group-toggle--active' : ''}`}
+        onClick={() => setOpen((prev) => !prev)}
+        aria-expanded={open}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
+        </svg>
+        <span className="app-sidebar__group-label">{item.label}</span>
+        <svg
+          className="app-sidebar__group-chevron"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          aria-hidden
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+      <div className="app-sidebar__subnav">
+        {item.children.map((child) => (
+          <NavLink
+            key={child.path}
+            to={child.path}
+            onClick={onClose}
+            className={({ isActive }) =>
+              `app-sidebar__sublink ${isActive ? 'app-sidebar__sublink--active' : ''}`
+            }
+          >
+            {child.label}
+          </NavLink>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const Sidebar = ({ isOpen, onClose }) => {
   const { logout, username } = useAuth();
@@ -73,21 +156,13 @@ const Sidebar = ({ isOpen, onClose }) => {
         </div>
 
         <nav className="app-sidebar__nav">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `app-sidebar__link ${isActive ? 'app-sidebar__link--active' : ''}`
-              }
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-              </svg>
-              <span>{item.label}</span>
-            </NavLink>
-          ))}
+          {navItems.map((item) =>
+            item.children ? (
+              <SidebarNavGroup key={item.id} item={item} onClose={onClose} />
+            ) : (
+              <SidebarNavLink key={item.path} item={item} onClose={onClose} />
+            ),
+          )}
         </nav>
 
         <div className="app-sidebar__footer">

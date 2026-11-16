@@ -12,6 +12,14 @@ import CameraVideosPage from './components/CameraVideosPage';
 import SavedVideosPage from './components/SavedVideosPage';
 import GpsTrackingPage from './components/GpsTrackingPage';
 import {
+  SweepingProjectPage,
+  SweepingMachinesPage,
+  SweepingRoadsPage,
+  SweepingDailyPlanPage,
+  SweepingMachineTrackingPage,
+  SweepingPlanVsActualPage,
+} from './components/sweeping/SweepingMgmtPages';
+import {
   AUTH_ROUTES,
   APP_ROUTES,
   LEGACY_REDIRECTS,
@@ -53,6 +61,13 @@ const App = () => {
         <Route path="camera-videos" element={<CameraVideosPage />} />
         <Route path="saved-videos" element={<SavedVideosPage />} />
         <Route path="gps" element={<GpsTrackingPage />} />
+        <Route path="sweeping-mgmt" element={<Navigate to="project" replace />} />
+        <Route path="sweeping-mgmt/project" element={<SweepingProjectPage />} />
+        <Route path="sweeping-mgmt/machines" element={<SweepingMachinesPage />} />
+        <Route path="sweeping-mgmt/roads" element={<SweepingRoadsPage />} />
+        <Route path="sweeping-mgmt/daily-plan" element={<SweepingDailyPlanPage />} />
+        <Route path="sweeping-mgmt/machine-tracking" element={<SweepingMachineTrackingPage />} />
+        <Route path="sweeping-mgmt/plan-vs-actual" element={<SweepingPlanVsActualPage />} />
       </Route>
 
       {LEGACY_REDIRECTS.map(({ from, to }) => (
