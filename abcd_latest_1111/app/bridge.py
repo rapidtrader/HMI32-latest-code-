@@ -30,7 +30,12 @@ from logic.machine_logic import (
     get_rear_down_state,
     set_can_send_callback,
     set_can_send_cancel_callback,
-)   
+    emergency_activate,
+    emergency_deactivate,
+    emergency_latch_begin,
+    emergency_shutdown_outputs,
+    is_emergency_active,
+)
 from logic.machine_identity import read_or_create_machine_id
 from hardware.can_sender import (
     add_error_log_entry,
@@ -191,6 +196,7 @@ class MachineBridge(QObject):
     commandErrorOccurred = pyqtSignal(str, str)  # (message, severity: "error" / "warning")
     notificationHistoryChanged = pyqtSignal()  # Emitted when notification history updates
     machineInfoApiFinished = pyqtSignal(str, str)  # (operation: submit|update, result)
+    emergencyActiveChanged = pyqtSignal()
 
     # Internal thread-safe signals
     _httpStateSyncFinished = pyqtSignal()
@@ -579,6 +585,12 @@ class MachineBridge(QObject):
     @pyqtSlot(int, int)
     def _arm_command_ui_feedback(self, cmd: int, state: int):
         """Mark command pending and start timeout. Runs only on main Qt thread."""
+        if is_emergency_active() and int(state) != 0:
+            self.commandErrorOccurred.emit(
+                "Emergency active — release emergency to operate.",
+                "warning",
+            )
+            return
 
         if self._timeout_timers.get(cmd):
             self._timeout_timers[cmd].stop()
@@ -823,7 +835,62 @@ class MachineBridge(QObject):
         self._run_machine(attr, getattr(self.machine, attr))
 
     def _run_machine(self, label: str, fn):
+        if is_emergency_active():
+            self.commandErrorOccurred.emit(
+                "Emergency active — release emergency to operate.",
+                "warning",
+            )
+            return
         run_machine_background(label, fn)
+
+    def _reset_ui_after_emergency_stop(self):
+        for cmd in COMMAND_NAMES:
+            if is_digital_input_cmd(cmd):
+                continue
+            self.set_button_color(cmd, COLOR_DEFAULT)
+            self._pending_commands[cmd] = None
+            self._pending_bus_sent[cmd] = False
+            if self._timeout_timers.get(cmd):
+                self._timeout_timers[cmd].stop()
+                self._timeout_timers[cmd] = None
+        self._emit_socket_state_snapshot()
+
+    @pyqtSlot(result=bool)
+    def isEmergencyActive(self):
+        return bool(is_emergency_active())
+
+    @pyqtSlot()
+    def emergencyStop(self):
+        """Latch emergency: all outputs OFF; block new ON until release."""
+        emergency_latch_begin()
+        self.emergencyActiveChanged.emit()
+
+        def work():
+            try:
+                emergency_shutdown_outputs(self.machine)
+            finally:
+                QMetaObject.invokeMethod(
+                    self,
+                    "_after_emergency_stop",
+                    Qt.QueuedConnection,
+                )
+
+        run_machine_background("emergency_stop", work)
+
+    @pyqtSlot()
+    def _after_emergency_stop(self):
+        self._reset_ui_after_emergency_stop()
+        self._refresh_states()
+        self.emergencyActiveChanged.emit()
+        self.commandErrorOccurred.emit(
+            "Emergency active — all outputs OFF. Release when safe.",
+            "error",
+        )
+
+    @pyqtSlot()
+    def emergencyRelease(self):
+        emergency_deactivate()
+        self.emergencyActiveChanged.emit()
 
     def _schedule_api_sync(self):
         run_background("machine_config_sync", store.sync_from_api)

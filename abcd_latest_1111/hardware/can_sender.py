@@ -888,6 +888,17 @@ def can_send(cmd: int, state: int, force: bool = False) -> bool:
     """Send [cmd, state] on CAN ID 0x200 (queued). Returns True immediately."""
     global _last_cmd, _last_state
     print(f"[DEBUG] can_send() called: cmd=0x{cmd:02X}, state={state}, force={force}")
+    try:
+        from logic.machine_logic import can_send_allowed
+
+        if not can_send_allowed(int(state)):
+            print(
+                f"[DEBUG] can_send blocked (emergency latched): "
+                f"cmd=0x{cmd:02X} state={state}"
+            )
+            return False
+    except Exception:
+        pass
     if not _CAN_AVAILABLE:
         if can_require_response():
             print(

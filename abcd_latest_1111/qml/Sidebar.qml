@@ -176,6 +176,78 @@ Rectangle {
         }
 
         Item {
+            id: emergencyFooter
+            Layout.fillWidth: true
+            Layout.preferredHeight: 52
+            Layout.leftMargin: 12
+            Layout.rightMargin: 12
+            Layout.bottomMargin: 8
+
+            property bool emergencyOn: false
+            Component.onCompleted: {
+                if (typeof machineBridge !== "undefined")
+                    emergencyOn = machineBridge.isEmergencyActive()
+            }
+            Connections {
+                target: (typeof machineBridge !== "undefined") ? machineBridge : null
+                function onEmergencyActiveChanged() {
+                    emergencyFooter.emergencyOn = machineBridge.isEmergencyActive()
+                }
+            }
+
+            Button {
+                anchors.fill: parent
+                visible: !emergencyFooter.emergencyOn
+                text: "EMERGENCY ON"
+                font.pixelSize: 13
+                font.bold: true
+                enabled: typeof machineBridge !== "undefined"
+                background: Rectangle {
+                    color: parent.hovered ? "#5c1010" : "#3d0a0a"
+                    border.color: "#e53935"
+                    border.width: 2
+                }
+                contentItem: Text {
+                    text: parent.text
+                    color: "#ffffff"
+                    font: parent.font
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    emergencyFooter.emergencyOn = true
+                    machineBridge.emergencyStop()
+                }
+            }
+
+            Button {
+                id: emergencyOffBtn
+                anchors.fill: parent
+                visible: emergencyFooter.emergencyOn
+                text: "EMERGENCY OFF"
+                font.pixelSize: 13
+                font.bold: true
+                enabled: typeof machineBridge !== "undefined"
+                background: Rectangle {
+                    color: emergencyOffBtn.hovered ? "#1b5e20" : "#2e7d32"
+                    border.color: "#69f0ae"
+                    border.width: 2
+                }
+                contentItem: Text {
+                    text: emergencyOffBtn.text
+                    color: "#ffffff"
+                    font: emergencyOffBtn.font
+                    horizontalAlignment: Text.AlignHCenter
+                    verticalAlignment: Text.AlignVCenter
+                }
+                onClicked: {
+                    machineBridge.emergencyRelease()
+                    emergencyFooter.emergencyOn = false
+                }
+            }
+        }
+
+        Item {
             Layout.fillWidth: true
             Layout.preferredHeight: 80
             Layout.leftMargin: 12

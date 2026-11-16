@@ -79,6 +79,44 @@ _can_states = {
 
 _can_send_callback = None
 _can_send_cancel_callback = None
+_emergency_active = False
+_emergency_shutdown = False
+
+
+def is_emergency_active() -> bool:
+    return bool(_emergency_active)
+
+
+def can_send_allowed(state: int) -> bool:
+    """While emergency latched, only OFF (0) frames may be sent."""
+    if _emergency_active and not _emergency_shutdown:
+        return int(state) == 0
+    return True
+
+
+def emergency_latch_begin() -> None:
+    global _emergency_active
+    _emergency_active = True
+
+
+def emergency_shutdown_outputs(machine: "Machine") -> None:
+    global _emergency_shutdown
+    _emergency_shutdown = True
+    try:
+        machine.emergency_stop_all()
+    finally:
+        _emergency_shutdown = False
+
+
+def emergency_activate(machine: "Machine") -> None:
+    emergency_latch_begin()
+    emergency_shutdown_outputs(machine)
+
+
+def emergency_deactivate() -> None:
+    global _emergency_active
+    _emergency_active = False
+
 
 def set_can_send_callback(callback):
     """Set the callback for sending CAN messages (for UI feedback)."""
@@ -95,6 +133,13 @@ def set_can_send_cancel_callback(callback):
 def _send_can(cmd: int, state: int, force: bool = False):
     """Send CAN message and update UI feedback."""
     global _can_states, _can_send_callback, _can_send_cancel_callback
+    if not can_send_allowed(state):
+        if _can_send_cancel_callback:
+            try:
+                _can_send_cancel_callback(cmd)
+            except Exception as e:
+                print(f"[DEBUG] CAN UI cancel (emergency): {e}")
+        return
     # force=True for explicit OFF from UI (e.g. rearBrushUpOff) even if _can_states desynced
     if force or _can_states.get(cmd) != state:
         if _can_send_callback:
@@ -407,6 +452,48 @@ def get_rear_down_state() -> bool:
 
 
 class Machine:
+    def emergency_stop_all(self) -> None:
+        """Turn off every machine output (CAN + local relays). Used for HMI emergency."""
+        global _can_states
+        self.force_zero_suction_pwm_hw()
+        try:
+            self.suction_off()
+        except Exception:
+            pass
+        try:
+            self.jet_off()
+            self.spray_off()
+            self.vacuum_off()
+            self.filter_clean_off()
+            self.auto_sweeping_off()
+            self.litter_picker_off()
+            self.dump_up_off()
+            self.dump_down_off()
+            self.dump_left_off()
+            self.gate_open_off()
+            self.gate_close_off()
+            self.brush_down_off()
+            self.brush_up_off()
+            self.rear_brush_down_off()
+            self.rear_brush_up_off()
+            self.brush_left_left_off()
+            self.brush_left_right_off()
+            self.brush_right_left_off()
+            self.brush_right_right_off()
+        except Exception as exc:
+            print(f"[DEBUG] emergency_stop_all partial error: {exc}")
+        try:
+            self.suction_set_speed(0)
+        except Exception:
+            pass
+        for cmd in (0x17, 0x18, 0x19, 0x1A, 0x1B):
+            _send_can(cmd, 0, force=True)
+        for cmd in range(0x39, 0x41):
+            can_send(cmd, 0, force=True)
+            _can_states[cmd] = 0
+        for cmd in list(_can_states.keys()):
+            _can_states[cmd] = 0 if cmd != 0x16 else _can_states.get(cmd)
+
     # ----- MCP2 @ 0x27: litter PB0, sweeping PB1 -----
 
     def _litter_relay_line_off(self):

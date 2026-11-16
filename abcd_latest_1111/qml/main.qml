@@ -37,6 +37,8 @@ ApplicationWindow {
     /** Linux HMI has no Consolas; use Qt generic monospace for log/chart text */
     readonly property string fontMono: "monospace"
 
+    property int nextErrorPopupId: 0
+
     readonly property var pageSources: ({
         "FollowUpPage": "FollowUpPage.qml",
         "SweeperControlsPage": "SweeperControlsPage.qml",
@@ -107,6 +109,7 @@ ApplicationWindow {
             property string messageText: model.messageText
             property string severityLevel: model.severityLevel
             property int itemIndex: model.itemIndex
+            property int popupId: model.popupId
 
             width: Math.min(400, root.width - 40)
             height: Math.max(60, contentRow.height + 24)
@@ -165,24 +168,25 @@ ApplicationWindow {
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                     }
-                    onClicked: {
-                        console.log("Removing popup at index:", popup.itemIndex)
-                        if (popup.itemIndex >= 0 && popup.itemIndex < errorPopups.count) {
-                            errorPopups.remove(popup.itemIndex)
-                            // Re-index remaining items
-                            for (var i = 0; i < errorPopups.count; i++) {
-                                errorPopups.setProperty(i, "itemIndex", i)
-                            }
-                        }
-                    }
+                    onClicked: root.removeErrorPopupById(popup.popupId, false)
                 }
             }
 
-            // Auto-dismiss timer
+            NumberAnimation {
+                id: dismissFade
+                target: popup
+                property: "opacity"
+                from: popup.opacity
+                to: 0
+                duration: 280
+                onStopped: root.removeErrorPopupById(popup.popupId, true)
+            }
+
             Timer {
                 id: autoDismissTimer
-                interval: severityLevel === "error" ? 8000 : 5000
-                onTriggered: errorPopups.remove(popup.itemIndex)
+                interval: severityLevel === "error" ? 5000 : 3500
+                repeat: false
+                onTriggered: dismissFade.start()
             }
 
             // Enter animation
@@ -207,19 +211,34 @@ ApplicationWindow {
         delegate: errorPopupComponent
     }
 
+    function removeErrorPopupById(pid, alreadyFading) {
+        for (var i = 0; i < errorPopups.count; i++) {
+            if (errorPopups.get(i).popupId !== pid)
+                continue
+            errorPopups.remove(i)
+            for (var j = 0; j < errorPopups.count; j++)
+                errorPopups.setProperty(j, "itemIndex", j)
+            return
+        }
+        if (!alreadyFading)
+            console.log("removeErrorPopupById: id not found", pid)
+    }
+
     function addErrorPopup(message, severity) {
         console.log("main.qml: addErrorPopup called with message:", JSON.stringify(message), "severity:", JSON.stringify(severity))
+        var pid = nextErrorPopupId
+        nextErrorPopupId++
         errorPopups.append({
             "messageText": message,
             "severityLevel": severity,
-            "itemIndex": errorPopups.count
+            "itemIndex": errorPopups.count,
+            "popupId": pid
         })
-        console.log("main.qml: errorPopups now has count:", errorPopups.count)
-        console.log("main.qml: last item messageText:", errorPopups.get(errorPopups.count - 1).messageText)
-        // Update indexes of all items
-        for (var i = 0; i < errorPopups.count; i++) {
-            errorPopups.setProperty(i, "itemIndex", i)
+        while (errorPopups.count > 4) {
+            errorPopups.remove(0)
         }
+        for (var i = 0; i < errorPopups.count; i++)
+            errorPopups.setProperty(i, "itemIndex", i)
     }
 
     function addToNotificationHistory(message, severity) {
