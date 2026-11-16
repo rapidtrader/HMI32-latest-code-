@@ -16,16 +16,16 @@ Rectangle {
 
     ListModel {
         id: inputModel
-        ListElement { inputIndex: 1;  label: "F_IN01"; pin: "PD7";  connected: 0 }
-        ListElement { inputIndex: 2;  label: "F_IN02"; pin: "PD4";  connected: 0 }
-        ListElement { inputIndex: 3;  label: "F_IN03"; pin: "PD3";  connected: 0 }
-        ListElement { inputIndex: 4;  label: "F_IN04"; pin: "PA12"; connected: 0 }
-        ListElement { inputIndex: 5;  label: "F_IN05"; pin: "PA15"; connected: 0 }
-        ListElement { inputIndex: 6;  label: "F_IN06"; pin: "PA11"; connected: 0 }
-        ListElement { inputIndex: 7;  label: "F_IN07"; pin: "PA8";  connected: 0 }
-        ListElement { inputIndex: 8;  label: "F_IN08"; pin: "PC8";  connected: 0 }
-        ListElement { inputIndex: 9;  label: "F_IN09"; pin: "PC9";  connected: 0 }
-        ListElement { inputIndex: 10; label: "F_IN10"; pin: "PD14"; connected: 0 }
+        ListElement { inputIndex: 1;  label: "Emergency Input"; pin: "PD7";  connected: 0 }
+        ListElement { inputIndex: 2;  label: "Filter Open"; pin: "PD4";  connected: 0 }
+        ListElement { inputIndex: 3;  label: "Front Left Brush ON"; pin: "PD3";  connected: 0 }
+        ListElement { inputIndex: 4;  label: "Front Right Brush ON"; pin: "PA12"; connected: 0 }
+        ListElement { inputIndex: 5;  label: "Rear Left Brush ON"; pin: "PA15"; connected: 0 }
+        ListElement { inputIndex: 6;  label: "Rear Right Brush ON"; pin: "PA11"; connected: 0 }
+        ListElement { inputIndex: 7;  label: "Dump Up Limit"; pin: "PA8";  connected: 0 }
+        ListElement { inputIndex: 8;  label: "Dump Down Limit"; pin: "PC8";  connected: 0 }
+        ListElement { inputIndex: 9;  label: "Gate Open"; pin: "PC9";  connected: 0 }
+        ListElement { inputIndex: 10; label: "Gate Close"; pin: "PD14"; connected: 0 }
         ListElement { inputIndex: 11; label: "F_IN11"; pin: "PD12"; connected: 0 }
         ListElement { inputIndex: 12; label: "F_IN12"; pin: "PD10"; connected: 0 }
         ListElement { inputIndex: 13; label: "F_IN13"; pin: "PD15"; connected: 0 }
@@ -109,7 +109,7 @@ Rectangle {
             wrapMode: Text.WordWrap
             color: textDim
             font.pixelSize: 14
-            text: "Wire / plate ON → GREEN · open → RED"
+            text: "F_IN01–10: wire pulse 1 → ON (green latch) · pulse 2 → OFF · F_IN11–16: live wire"
         }
 
         ScrollView {

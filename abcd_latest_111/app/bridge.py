@@ -190,6 +190,7 @@ class MachineBridge(QObject):
     suctionAdcChanged = pyqtSignal(int) # # New signal for suction ADC updates
     pa0AdcChanged = pyqtSignal(int)  # PA0 water pressure ADC updates
     digitalInputStateChanged = pyqtSignal(int, int)  # index 1–16, state 0/1
+    plateInputChanged = pyqtSignal(int, int, str)  # index 1–16, latched state, label
     a25Changed = pyqtSignal()
     canMessageLogChanged = pyqtSignal()
     commandButtonColorChanged = pyqtSignal(int, str)  # cmd, color
@@ -660,8 +661,16 @@ class MachineBridge(QObject):
         """Handle GPIO status received from STM32."""
         if is_digital_input_cmd(cmd):
             idx = index_for_cmd(cmd)
+            from hardware.digital_inputs import is_plate_toggle_cmd
+            from hardware.plate_input_actions import handle_plate_input_status
+
+            display = int(state)
+            if is_plate_toggle_cmd(cmd):
+                latched = handle_plate_input_status(cmd, state, self)
+                if latched is not None:
+                    display = int(latched)
             if idx is not None:
-                self.digitalInputStateChanged.emit(idx, int(state))
+                self.digitalInputStateChanged.emit(idx, display)
             return
 
         if _sock_emit_can_gpio is not None:
@@ -796,10 +805,17 @@ class MachineBridge(QObject):
 
     @pyqtSlot(int, result=int)
     def getDigitalInputState(self, input_index: int):
-        """F_IN01–F_IN16: 1 = wire/plate ON (green), 0 = off (red)."""
+        """F_IN01–10: latched toggle; F_IN11–16: live wire level."""
         cmd = cmd_for_index(int(input_index))
         if cmd is None:
             return 0
+        from hardware.digital_inputs import is_plate_toggle_cmd
+        from hardware.plate_input_actions import get_plate_latched_state
+
+        if is_plate_toggle_cmd(cmd):
+            latched = get_plate_latched_state(cmd)
+            if latched is not None:
+                return int(latched)
         return int(get_gpio_state(cmd))
 
     @pyqtSlot(result="QVariantList")

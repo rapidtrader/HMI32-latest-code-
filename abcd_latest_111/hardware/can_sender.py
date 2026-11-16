@@ -645,6 +645,9 @@ def _can_receiver():
                 cmd = msg.data[0]
                 state = msg.data[1]
 
+                if 0x31 <= cmd <= 0x40 and _gpio_status.get(cmd) == state:
+                    continue
+
                 _gpio_status[cmd] = state
 
                 log_entry["type"] = "gpio"

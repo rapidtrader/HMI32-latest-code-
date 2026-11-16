@@ -79,16 +79,16 @@ uint32_t lastFinBurstTime = 0;
   0x1B = Rear Brush Motor       = PC2
 
   Field digital inputs (read-only, active-low + pull-up):
-  0x31 = F_IN01  PD7
-  0x32 = F_IN02  PD4
-  0x33 = F_IN03  PD3
-  0x34 = F_IN04  PA12
-  0x35 = F_IN05  PA15
-  0x36 = F_IN06  PA11
-  0x37 = F_IN07  PA8
-  0x38 = F_IN08  PC8
-  0x39 = F_IN09  PC9
-  0x3A = F_IN10  PD14
+  0x31 = F_IN01  PD7   Emergency Input
+  0x32 = F_IN02  PD4   Filter Open
+  0x33 = F_IN03  PD3   Front Left Brush ON
+  0x34 = F_IN04  PA12  Front Right Brush ON
+  0x35 = F_IN05  PA15  Rear Left Brush ON
+  0x36 = F_IN06  PA11  Rear Right Brush ON
+  0x37 = F_IN07  PA8   Dump Up Limit
+  0x38 = F_IN08  PC8   Dump Down Limit
+  0x39 = F_IN09  PC9   Gate Open
+  0x3A = F_IN10  PD14  Gate Close
   0x3B = F_IN11  PD12
   0x3C = F_IN12  PD10
   0x3D = F_IN13  PD15
