@@ -192,21 +192,20 @@ class SweepingDailyPlan {
 
     const stats = SweepingDailyPlan.buildStats(machinesOut, stillUnassigned.length);
     const now = new Date();
-    const doc = {
+    const setDoc = {
       assignedProjectId: pid,
       assignedProjectName: project.projectName,
       planDate: date,
       status: 'Planned',
       stats,
       machines: machinesOut,
-      created_at: now,
       updated_at: now,
     };
 
     const col = db.collection(COLLECTION);
     await col.updateOne(
       { assignedProjectId: pid, planDate: date },
-      { $set: doc, $setOnInsert: { created_at: now } },
+      { $set: setDoc, $setOnInsert: { created_at: now } },
       { upsert: true },
     );
 

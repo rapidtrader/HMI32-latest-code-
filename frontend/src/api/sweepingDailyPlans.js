@@ -1,20 +1,16 @@
 import { apiUrl } from './client';
-
-async function parseJson(res) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.success === false) {
-    throw new Error(data.message || `Request failed (${res.status})`);
-  }
-  return data;
-}
+import { parseSweepingJson } from './sweepingClient';
 
 export async function fetchDailyPlan(projectId, planDate) {
   const q = new URLSearchParams({ projectId, planDate });
-  return parseJson(await fetch(apiUrl(`/api/sweeping/daily-plans?${q}`)));
+  return parseSweepingJson(await fetch(apiUrl(`/api/sweeping/daily-plans?${q}`)), {
+    emptyList: true,
+    emptyListDefaults: { data: null, rows: [], machines: [], plan: null },
+  });
 }
 
 export async function generateDailyPlan(projectId, planDate) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl('/api/sweeping/daily-plans/generate'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -24,7 +20,7 @@ export async function generateDailyPlan(projectId, planDate) {
 }
 
 export async function cancelMachineDailyPlan(planId, machineId) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl(`/api/sweeping/daily-plans/${planId}/machines/${encodeURIComponent(machineId)}/cancel`), {
       method: 'POST',
     }),

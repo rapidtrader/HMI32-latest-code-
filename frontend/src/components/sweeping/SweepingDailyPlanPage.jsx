@@ -136,6 +136,7 @@ const SweepingDailyPlanPage = () => {
     onSuccess: (res) => {
       setToast(res.message || 'Daily sweeping plan generated successfully');
       queryClient.setQueryData(planKey(projectId, planDate), res.data);
+      queryClient.invalidateQueries({ queryKey: planKey(projectId, planDate) });
     },
     onError: (err) => setToast(err.message || 'Generate failed'),
   });
@@ -223,7 +224,7 @@ const SweepingDailyPlanPage = () => {
           </div>
         ) : planQuery.isFetching && !plan ? (
           <div className="sweep-daily-plan__empty">Loading plan…</div>
-        ) : !plan || !machines.length ? (
+        ) : !plan ? (
           <div className="sweep-daily-plan__empty">
             {projectLabel ? (
               <>
@@ -232,6 +233,16 @@ const SweepingDailyPlanPage = () => {
             ) : (
               'No plan data.'
             )}
+          </div>
+        ) : !machines.length ? (
+          <div className="sweep-daily-plan__empty">
+            Plan saved for <strong>{fmtPlanTitleDate(planDate)}</strong> but no roads were assigned — add active machines &
+            roads (Daily frequency) for this project, then generate again.
+            {stats.unassignedRoads > 0 ? (
+              <p style={{ marginTop: '0.5rem' }}>
+                Unassigned roads: <strong>{stats.unassignedRoads}</strong>
+              </p>
+            ) : null}
           </div>
         ) : (
           <>

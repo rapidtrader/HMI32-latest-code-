@@ -1,12 +1,5 @@
 import { apiUrl } from './client';
-
-async function parseJson(res) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.success === false) {
-    throw new Error(data.message || `Request failed (${res.status})`);
-  }
-  return data;
-}
+import { parseSweepingJson } from './sweepingClient';
 
 export async function fetchSweepingProjects({ search, status, page, limit } = {}) {
   const q = new URLSearchParams();
@@ -15,11 +8,14 @@ export async function fetchSweepingProjects({ search, status, page, limit } = {}
   if (page) q.set('page', String(page));
   if (limit) q.set('limit', String(limit));
   const suffix = q.toString() ? `?${q.toString()}` : '';
-  return parseJson(await fetch(apiUrl(`/api/sweeping/projects${suffix}`)));
+  return parseSweepingJson(await fetch(apiUrl(`/api/sweeping/projects${suffix}`)), {
+    emptyList: true,
+    emptyListDefaults: { page: page || 1, limit: limit || 10 },
+  });
 }
 
 export async function createSweepingProject(body) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl('/api/sweeping/projects'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -29,7 +25,7 @@ export async function createSweepingProject(body) {
 }
 
 export async function updateSweepingProject(id, body) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl(`/api/sweeping/projects/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -39,7 +35,7 @@ export async function updateSweepingProject(id, body) {
 }
 
 export async function deleteSweepingProject(id) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl(`/api/sweeping/projects/${id}`), {
       method: 'DELETE',
     }),

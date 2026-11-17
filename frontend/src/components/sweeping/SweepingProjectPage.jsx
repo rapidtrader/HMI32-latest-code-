@@ -114,6 +114,11 @@ const SweepingProjectPage = () => {
       error={listQuery.error}
       onRefresh={refresh}
     >
+      {listQuery.data?.apiMissing && (
+        <div className="hmi32-alert" style={{ marginBottom: '1rem' }}>
+          {listQuery.data.message}
+        </div>
+      )}
       <div className="sweep-projects">
         <div className="sweep-projects__toolbar">
           <form className="sweep-projects__search" onSubmit={handleSearchSubmit}>

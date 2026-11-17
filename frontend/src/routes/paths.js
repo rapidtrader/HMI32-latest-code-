@@ -14,6 +14,9 @@ export const APP_ROUTES = {
   CAMERA_VIDEOS: '/app/camera-videos',
   SAVED_VIDEOS: '/app/saved-videos',
   GPS: '/app/gps',
+  LIVE_MAP: '/app/live-map',
+  SWEEPER_MONITORING: '/app/sweeper-monitoring',
+  VEHICLE_HISTORY: '/app/vehicle-history',
   SWEEPING: '/app/sweeping-mgmt',
   SWEEPING_PROJECT: '/app/sweeping-mgmt/project',
   SWEEPING_MACHINES: '/app/sweeping-mgmt/machines',
@@ -34,6 +37,9 @@ export const ROUTES = {
   CAMERA_VIDEOS: APP_ROUTES.CAMERA_VIDEOS,
   SAVED_VIDEOS: APP_ROUTES.SAVED_VIDEOS,
   GPS: APP_ROUTES.GPS,
+  LIVE_MAP: APP_ROUTES.LIVE_MAP,
+  SWEEPER_MONITORING: APP_ROUTES.SWEEPER_MONITORING,
+  VEHICLE_HISTORY: APP_ROUTES.VEHICLE_HISTORY,
   SWEEPING: APP_ROUTES.SWEEPING,
   SWEEPING_PROJECT: APP_ROUTES.SWEEPING_PROJECT,
   SWEEPING_MACHINES: APP_ROUTES.SWEEPING_MACHINES,
@@ -53,6 +59,9 @@ export const LEGACY_REDIRECTS = [
   { from: '/camera-videos', to: APP_ROUTES.CAMERA_VIDEOS },
   { from: '/saved-videos', to: APP_ROUTES.SAVED_VIDEOS },
   { from: '/gps', to: APP_ROUTES.GPS },
+  { from: '/live-map', to: APP_ROUTES.LIVE_MAP },
+  { from: '/sweeper-monitoring', to: APP_ROUTES.SWEEPER_MONITORING },
+  { from: '/vehicle-history', to: APP_ROUTES.VEHICLE_HISTORY },
 ];
 
 export function defaultAuthedPath() {

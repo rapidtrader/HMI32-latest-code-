@@ -22,7 +22,7 @@ const MachineFormPanel = ({
   onSave,
 }) => {
   const readOnly = mode === 'view';
-  const [form, setForm] = useState(EMPTY);
+  const [form, setForm] = useState(EMPTY);  
 
   useEffect(() => {
     if (initial) {

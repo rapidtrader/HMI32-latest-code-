@@ -1,12 +1,5 @@
 import { apiUrl } from './client';
-
-async function parseJson(res) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.success === false) {
-    throw new Error(data.message || `Request failed (${res.status})`);
-  }
-  return data;
-}
+import { parseSweepingJson } from './sweepingClient';
 
 export async function fetchSweepingMachines({ search, status, projectId, page, limit } = {}) {
   const q = new URLSearchParams();
@@ -16,16 +9,20 @@ export async function fetchSweepingMachines({ search, status, projectId, page, l
   if (page) q.set('page', String(page));
   if (limit) q.set('limit', String(limit));
   const suffix = q.toString() ? `?${q.toString()}` : '';
-  return parseJson(await fetch(apiUrl(`/api/sweeping/machines${suffix}`)));
+  return parseSweepingJson(await fetch(apiUrl(`/api/sweeping/machines${suffix}`)), {
+    emptyList: true,
+    emptyListDefaults: { page: page || 1, limit: limit || 10 },
+  });
 }
 
 export async function fetchSweepingVehicleIds() {
-  const data = await parseJson(await fetch(apiUrl('/api/sweeping/machines/vehicle-ids')));
+  const res = await fetch(apiUrl('/api/sweeping/machines/vehicle-ids'));
+  const data = await parseSweepingJson(res, { emptyList: true, emptyListDefaults: { data: [] } });
   return Array.isArray(data.data) ? data.data : [];
 }
 
 export async function createSweepingMachine(body) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl('/api/sweeping/machines'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -35,7 +32,7 @@ export async function createSweepingMachine(body) {
 }
 
 export async function updateSweepingMachine(id, body) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl(`/api/sweeping/machines/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -44,8 +41,16 @@ export async function updateSweepingMachine(id, body) {
   );
 }
 
+export async function deleteSweepingMachine(id) {
+  return parseSweepingJson(
+    await fetch(apiUrl(`/api/sweeping/machines/${id}`), {
+      method: 'DELETE',
+    }),
+  );
+}
+
 export async function deactivateSweepingMachine(id) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl(`/api/sweeping/machines/${id}/deactivate`), {
       method: 'POST',
     }),

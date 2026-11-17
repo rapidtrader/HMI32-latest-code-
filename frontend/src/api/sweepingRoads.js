@@ -1,12 +1,5 @@
 import { apiUrl } from './client';
-
-async function parseJson(res) {
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok || data.success === false) {
-    throw new Error(data.message || `Request failed (${res.status})`);
-  }
-  return data;
-}
+import { parseSweepingJson } from './sweepingClient';
 
 export async function fetchSweepingRoads({
   search,
@@ -28,22 +21,31 @@ export async function fetchSweepingRoads({
   if (page) q.set('page', String(page));
   if (limit) q.set('limit', String(limit));
   const suffix = q.toString() ? `?${q.toString()}` : '';
-  return parseJson(await fetch(apiUrl(`/api/sweeping/roads${suffix}`)));
+  return parseSweepingJson(await fetch(apiUrl(`/api/sweeping/roads${suffix}`)), {
+    emptyList: true,
+    emptyListDefaults: { page: page || 1, limit: limit || 10 },
+  });
 }
 
 export async function fetchSweepingRoadFilterOptions() {
-  const data = await parseJson(await fetch(apiUrl('/api/sweeping/roads/filter-options')));
+  const data = await parseSweepingJson(await fetch(apiUrl('/api/sweeping/roads/filter-options')), {
+    emptyList: true,
+    emptyListDefaults: { data: { areas: [], colonies: [], frequencies: [] } },
+  });
   return data.data || { areas: [], colonies: [], frequencies: [] };
 }
 
 export async function suggestSweepingRoadId(projectId) {
   const q = new URLSearchParams({ projectId });
-  const data = await parseJson(await fetch(apiUrl(`/api/sweeping/roads/suggest-id?${q}`)));
+  const data = await parseSweepingJson(await fetch(apiUrl(`/api/sweeping/roads/suggest-id?${q}`)), {
+    emptyList: true,
+    emptyListDefaults: { data: { roadId: '' } },
+  });
   return data.data?.roadId || '';
 }
 
 export async function createSweepingRoad(body) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl('/api/sweeping/roads'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -53,7 +55,7 @@ export async function createSweepingRoad(body) {
 }
 
 export async function updateSweepingRoad(id, body) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl(`/api/sweeping/roads/${id}`), {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -63,7 +65,7 @@ export async function updateSweepingRoad(id, body) {
 }
 
 export async function deactivateSweepingRoad(id) {
-  return parseJson(
+  return parseSweepingJson(
     await fetch(apiUrl(`/api/sweeping/roads/${id}/deactivate`), {
       method: 'POST',
     }),

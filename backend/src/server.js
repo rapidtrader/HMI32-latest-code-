@@ -25,6 +25,9 @@ const sweepingDailyPlansRouter = require('./routes/sweepingDailyPlans');
 const SweepingDailyPlan = require('./models/SweepingDailyPlan');
 const sweepingMachineTrackingRouter = require('./routes/sweepingMachineTracking');
 const sweepingPlanVsActualRouter = require('./routes/sweepingPlanVsActual');
+const liveMapRouter = require('./routes/liveMap');
+const sweeperMonitoringRouter = require('./routes/sweeperMonitoring');
+const vehicleHistoryRouter = require('./routes/vehicleHistory');
 const GpsLocation = require('./models/GpsLocation');
 const PiData = require('./models/PiData');
 const CameraVideo = require('./models/CameraVideo');
@@ -71,6 +74,9 @@ app.use('/api/sweeping/roads', sweepingRoadsRouter);
 app.use('/api/sweeping/daily-plans', sweepingDailyPlansRouter);
 app.use('/api/sweeping/machine-tracking', sweepingMachineTrackingRouter);
 app.use('/api/sweeping/plan-vs-actual', sweepingPlanVsActualRouter);
+app.use('/api/live-map', liveMapRouter);
+app.use('/api/sweeper-monitoring', sweeperMonitoringRouter);
+app.use('/api/vehicle-history', vehicleHistoryRouter);
 
 const io = new SocketIOServer(httpServer, {
   cors: { origin: corsOrigins, credentials: true },
