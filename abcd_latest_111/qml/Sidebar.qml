@@ -162,6 +162,17 @@ Rectangle {
         }
 
         SidebarItem {
+            iconText: "🗺"
+            labelText: "Live Map"
+            pageName: "LiveMapPage"
+            isActive: sidebar.activeItem === "LiveMapPage"
+            bg: sidebar.bg; bgCard: sidebar.bgCard; bgCardHover: sidebar.bgCardHover
+            bgCardActive: sidebar.bgCardActive; iconColor: sidebar.iconColor
+            iconHover: sidebar.iconHover; text: sidebar.text
+            onClicked: sidebar.pageRequested("LiveMapPage")
+        }
+
+        SidebarItem {
             iconText: "📍"
             labelText: "GPS Track"
             pageName: "GpsTrackPage"

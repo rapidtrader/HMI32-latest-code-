@@ -50,7 +50,8 @@ ApplicationWindow {
         "WaterPressurePage": "WaterPressurePage.qml",
         "PcbPlateInputsPage": "PcbPlateInputsPage.qml",
         "CameraPage": "CameraPage.qml",
-        "GpsTrackPage": "GpsTrackPage.qml"
+        "GpsTrackPage": "GpsTrackPage.qml",
+        "LiveMapPage": "LiveMapPage.qml"
     })
 
     Connections {

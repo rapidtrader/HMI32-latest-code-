@@ -94,6 +94,7 @@ Rectangle {
             font.pixelSize: 11
             horizontalAlignment: Text.AlignHCenter
             text: "Parser: gps-code (GPGGA/GPRMC). Port: " + (gpsController.statusText)
+                + "\nStreet roads ke liye sidebar → Live Map (🗺), yahan sirf cyan line hai."
         }
 
         GridLayout {

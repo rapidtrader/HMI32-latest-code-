@@ -217,6 +217,13 @@ def run():
 
     engine = QQmlApplicationEngine()
     engine.addImportPath(QML_DIR)
+    try:
+        from app.map_tile_provider import MapTileImageProvider
+
+        engine.addImageProvider("hmi-map", MapTileImageProvider())
+        print("[MAP] image provider: image://hmi-map/z/x/y")
+    except Exception as exc:
+        print(f"[MAP] image provider skipped: {exc}")
 
     app_controller = AppController()
     set_global_controller(app_controller)

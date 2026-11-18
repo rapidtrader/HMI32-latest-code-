@@ -2,7 +2,7 @@
 import json
 import os
 
-from PyQt5.QtCore import QObject, QTimer, pyqtProperty, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QObject, QTimer, QUrl, pyqtProperty, pyqtSignal, pyqtSlot
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GPS_LATEST_JSON = os.path.join(BASE_DIR, "data", "gps_latest.json")
@@ -17,9 +17,11 @@ def _short_iso(ts: str) -> str:
 
 class GpsController(QObject):
     fixChanged = pyqtSignal()
+    mapTilesChanged = pyqtSignal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._map_tile_rev = 0
         self._latitude = 0.0
         self._longitude = 0.0
         self._speed_kmh = 0.0
@@ -39,7 +41,29 @@ class GpsController(QObject):
         self._timer.setInterval(int(os.environ.get("GPS_UI_REFRESH_MS", "1000")))
         self._timer.timeout.connect(self._refresh)
         self._timer.start()
+        self._map_tile_bump = QTimer(self)
+        self._map_tile_bump.setSingleShot(True)
+        self._map_tile_bump.setInterval(500)
+        self._map_tile_bump.timeout.connect(self._bump_map_tile_rev)
+        try:
+            from logic.map_tile_cache import register_tile_saved_hook
+
+            register_tile_saved_hook(self._on_map_tile_saved)
+        except Exception:
+            pass
         self._refresh()
+
+    def _on_map_tile_saved(self, z, x, y):
+        del z, x, y
+        self._map_tile_bump.start()
+
+    def _bump_map_tile_rev(self):
+        self._map_tile_rev += 1
+        self.mapTilesChanged.emit()
+
+    @pyqtProperty(int, notify=mapTilesChanged)
+    def mapTilesRevision(self):
+        return self._map_tile_rev
 
     def _refresh(self) -> None:
         changed = False
@@ -266,3 +290,26 @@ class GpsController(QObject):
             f"{self._latitude:.6f}&mlon={self._longitude:.6f}#map=17/"
             f"{self._latitude:.6f}/{self._longitude:.6f}"
         )
+
+    @pyqtSlot(int, int, int, result=str)
+    def mapTileLocalUrl(self, z, x, y):
+        """QML Image source via registered image://hmi-map provider (reliable on Pi)."""
+        try:
+            zi, xi, yi = int(z), int(x), int(y)
+            return f"image://hmi-map/{zi}/{xi}/{yi}"
+        except (TypeError, ValueError):
+            return ""
+
+    @pyqtSlot(int, int, int)
+    def prefetchMapTiles(self, z, center_x, center_y):
+        self.prefetchMapTilesRadius(z, center_x, center_y, 1)
+
+    @pyqtSlot(int, int, int, int)
+    def prefetchMapTilesRadius(self, z, center_x, center_y, radius):
+        try:
+            from logic.map_tile_cache import prefetch_tiles
+
+            r = max(1, min(int(radius), 5))
+            prefetch_tiles(int(z), int(center_x), int(center_y), radius=r)
+        except Exception:
+            pass

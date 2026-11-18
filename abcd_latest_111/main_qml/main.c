@@ -28,8 +28,6 @@ uint32_t distance_sum = 0;
 
 uint32_t lastDistanceSendTime = 0;
 uint32_t lastPa0SendTime = 0;
-uint32_t lastHeartbeatLedMs = 0;
-uint32_t lastFinBurstTime = 0;
 
 /*
   A25 Sensor UART:
@@ -77,24 +75,6 @@ uint32_t lastFinBurstTime = 0;
   0x19 = Front Left Brush Motor = PE6
   0x1A = Front Right Brush Motor= PC0
   0x1B = Rear Brush Motor       = PC2
-
-  Field digital inputs (read-only, active-low + pull-up):
-  0x31 = F_IN01  PD7   Emergency Input
-  0x32 = F_IN02  PD4   Filter Open
-  0x33 = F_IN03  PD3   Front Left Brush ON
-  0x34 = F_IN04  PA12  Front Right Brush ON
-  0x35 = F_IN05  PA15  Rear Left Brush ON
-  0x36 = F_IN06  PA11  Rear Right Brush ON
-  0x37 = F_IN07  PA8   Dump Up Limit
-  0x38 = F_IN08  PC8   Dump Down Limit
-  0x39 = F_IN09  PC9   Gate Open
-  0x3A = F_IN10  PD14  Gate Close
-  0x3B = F_IN11  PD12
-  0x3C = F_IN12  PD10
-  0x3D = F_IN13  PD15
-  0x3E = F_IN14  PD13
-  0x3F = F_IN15  PD11
-  0x40 = F_IN16  PB15
 */
 
 uint32_t frontDownStartTime = 0;
@@ -109,7 +89,6 @@ const uint8_t allCommands[] = {
     0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
     0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x14,
     0x16, 0x17, 0x18, 0x19, 0x1A, 0x1B
-    /* F_IN 0x31–0x40: sent in 250ms burst below (faster HMI) */
 };
 
 const uint8_t totalCommands = sizeof(allCommands) / sizeof(allCommands[0]);
@@ -139,7 +118,6 @@ void CAN_Poll_Receive(void);
 void CAN_RecoverFromBusOff(void);
 
 uint8_t Get_GPIO_State(uint8_t cmd);
-uint8_t Get_Field_Digital_Input_State(uint8_t cmd);
 
 void Process_Front_Up_Sequence(void);
 void Set_Suction_DAC(uint16_t dacValue);
@@ -214,13 +192,6 @@ void CAN_Process_Command(uint8_t cmd, uint8_t state)
     if(cmd == 0x16)
     {
         CAN_Send_GPIO_Status(0x16, Get_GPIO_State(0x16));
-        return;
-    }
-
-    // F_IN01–F_IN16 (PCB plate digital inputs)
-    if(cmd >= 0x31 && cmd <= 0x40)
-    {
-        CAN_Send_GPIO_Status(cmd, Get_Field_Digital_Input_State(cmd));
         return;
     }
 
@@ -497,43 +468,8 @@ void CAN_RecoverFromBusOff(void)
     }
 }
 
-uint8_t Get_Field_Digital_Input_State(uint8_t cmd)
-{
-    GPIO_PinState pinState = GPIO_PIN_RESET;
-
-    switch(cmd)
-    {
-        case 0x31: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_7);  break;
-        case 0x32: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_4);  break;
-        case 0x33: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_3);  break;
-        case 0x34: pinState = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12); break;
-        case 0x35: pinState = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_15); break;
-        case 0x36: pinState = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_11); break;
-        case 0x37: pinState = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_8);  break;
-        case 0x38: pinState = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8);  break;
-        case 0x39: pinState = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9);  break;
-        case 0x3A: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_14); break;
-        case 0x3B: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_12); break;
-        case 0x3C: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_10); break;
-        case 0x3D: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_15); break;
-        case 0x3E: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_13); break;
-        case 0x3F: pinState = HAL_GPIO_ReadPin(GPIOD, GPIO_PIN_11); break;
-        case 0x40: pinState = HAL_GPIO_ReadPin(GPIOB, GPIO_PIN_15); break;
-        default:
-            return 0;
-    }
-
-    /* Active-low with internal pull-up: wire ON pulls to GND → report 1 (green). */
-    return (pinState == GPIO_PIN_RESET) ? 1 : 0;
-}
-
 uint8_t Get_GPIO_State(uint8_t cmd)
 {
-  if(cmd >= 0x31 && cmd <= 0x40)
-  {
-      return Get_Field_Digital_Input_State(cmd);
-  }
-
     GPIO_PinState pinState = GPIO_PIN_RESET;
 
     switch(cmd)
@@ -851,27 +787,10 @@ int main(void)
 
     while (1)
     {
-        /* ~500ms toggle on PC6 = firmware running; ~100ms = Error_Handler */
-        if (HAL_GetTick() - lastHeartbeatLedMs >= 500)
-        {
-            lastHeartbeatLedMs = HAL_GetTick();
-            HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
-        }
-
         CAN_RecoverFromBusOff();
         CAN_Poll_Receive();
         Process_Front_Up_Sequence();
         Read_A25_Sensor();
-
-        /* F_IN01–16: burst every 250ms for responsive PCB plate UI */
-        if (HAL_GetTick() - lastFinBurstTime >= 250)
-        {
-            lastFinBurstTime = HAL_GetTick();
-            for (uint8_t finCmd = 0x31; finCmd <= 0x40; finCmd++)
-            {
-                CAN_Send_GPIO_Status(finCmd, Get_Field_Digital_Input_State(finCmd));
-            }
-        }
 
         // Periodic PA0 analog read and send every 200ms
         if (HAL_GetTick() - lastPa0SendTime >= 200)
@@ -896,6 +815,8 @@ int main(void)
             {
                 gpioIndex = 0;
             }
+
+            HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
         }
     }
 }
@@ -1054,6 +975,8 @@ static void MX_GPIO_Init(void)
                            | GPIO_PIN_10 | GPIO_PIN_11 | GPIO_PIN_12 | GPIO_PIN_13
                            | GPIO_PIN_14 | GPIO_PIN_15, GPIO_PIN_RESET);
 
+    HAL_GPIO_WritePin(GPIOD, GPIO_PIN_12, GPIO_PIN_RESET);
+
     /*
       PA0 = Analog Input (Water Pressure Sensor) - configured in MX_ADC1_PA0_Register_Init
       PA6 = Left Brush Retract
@@ -1140,34 +1063,11 @@ static void MX_GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
-    /*
-      F_IN01–F_IN16 digital inputs (active-low, internal pull-up)
-    */
-    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-    GPIO_InitStruct.Pull = GPIO_PULLUP;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-
-    GPIO_InitStruct.Pin = GPIO_PIN_7 | GPIO_PIN_4 | GPIO_PIN_3 | GPIO_PIN_14
-                        | GPIO_PIN_12 | GPIO_PIN_10 | GPIO_PIN_15 | GPIO_PIN_13
-                        | GPIO_PIN_11;
-    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_12 | GPIO_PIN_15 | GPIO_PIN_11 | GPIO_PIN_8;
-    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-    GPIO_InitStruct.Pin = GPIO_PIN_15;
-    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-    /* Fault indicator (was PD12 — now F_IN11). */
-    GPIO_InitStruct.Pin = GPIO_PIN_6;
+    GPIO_InitStruct.Pin = GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
+    HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 }
 
 static void MX_ADC1_PA0_Register_Init(void)
@@ -1205,7 +1105,7 @@ void Error_Handler(void)
 
     while (1)
     {
-        HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_6);
+        HAL_GPIO_TogglePin(GPIOD, GPIO_PIN_12);
         HAL_Delay(100);
     }
 }
